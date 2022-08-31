@@ -24,10 +24,6 @@ target_include_directories(
     PUBLIC external/imgui
 )
 
-target_link_directories(
-    ${PROJECT_NAME}
-    PUBLIC external/SDL2/lib
-)
 
 find_library(PTHREAD_LIB pthread)
 
