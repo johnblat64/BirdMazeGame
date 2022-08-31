@@ -30,5 +30,10 @@ target_link_directories(
     PUBLIC external/flecs/Debug
 )
 
+if (WIN32)
+set(flecslib flecs::flecs_static)
+else()
+set(flecslib flecs::flecs) 
+endif()
 
-target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main flecs::flecs flecs::flecs_static)
+target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main ${flecslib})
