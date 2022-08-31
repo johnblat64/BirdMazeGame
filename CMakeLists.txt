@@ -31,9 +31,9 @@ target_link_directories(
 )
 
 if (WIN32)
-set(flecslib flecs::flecs_static)
+set(FLECSLIB flecs::flecs_static)
 else()
-set(flecslib flecs::flecs) 
+set(FLECSLIB flecs::flecs)
 endif()
 
-target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main ${flecslib})
+target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main ${FLECSLIB})
