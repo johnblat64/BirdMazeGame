@@ -56,7 +56,7 @@ Game_ImGui_Setup()
 
 //--------------------------------------------------------
 int 
-main()
+main(int argc, char* argv[])
 {
     AutoTiledTileMap auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 34, 28);
     WorldPosition tilemap_position = {0.0, 0.0};
@@ -64,8 +64,10 @@ main()
     Uint32 imgui_n_cols = auto_tile_map.n_cols;
     int tilemap_row_mouse_on_display = 0;
     int tilemap_col_mouse_on_display = 0;
-    int window_mouse_x, window_mouse_y;
-    float logical_mouse_x, logical_mouse_y;
+    int window_mouse_x = 0;
+    int window_mouse_y = 0;
+    float logical_mouse_x = 0;
+    float logical_mouse_y = 0;
     int relative_tilemap_mouse_x;
     int relative_tilemap_mouse_y;
 
