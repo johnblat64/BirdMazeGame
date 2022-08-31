@@ -27,9 +27,13 @@ target_include_directories(
 target_link_directories(
     ${PROJECT_NAME}
     PUBLIC external/SDL2/lib
+    PUBLIC external/flecs/Debug
 )
 
-find_library(PTHREAD_LIB pthread)
+if (WIN32)
+set(FLECSLIB flecs::flecs_static)
+else()
+set(FLECSLIB flecs::flecs)
+endif()
 
-
-target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main flecs ${PTHREAD_LIB})
+target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main ${FLECSLIB})
