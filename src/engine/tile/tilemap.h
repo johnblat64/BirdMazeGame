@@ -18,9 +18,9 @@ struct AutoTiledTileMap
     std::vector<Uint8> auto_tile_tileset_bitmasks;
     std::vector<int> tileset_sprite_sheet_indices;
     std::vector<bool> walls; // used to determine auto tiling for the tileset_sprite_sheet_indices
-    Uint32 tile_size;
-    Uint32 n_rows;
-    Uint32 n_cols;
+    Uint16 tile_size;
+    Uint16 n_rows;
+    Uint16 n_cols;
 };
 
 
