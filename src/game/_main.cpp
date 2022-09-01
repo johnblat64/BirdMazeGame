@@ -12,35 +12,34 @@
 SDL_Window *window;
 int window_w = 1920;
 int window_h = 1080;
-float aspect_ratio = 1.77777f;
 SDL_Renderer *renderer;
 SDL_Event event;
 bool should_quit = false;
 
 
 //--------------------------------------------------------
-void 
+void
 Game_SDL_Setup()
 {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow(
-        "Bird Maze Game", 
-        0, 
-        0, 
-        window_w, 
-        window_h, 
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+            "Bird Maze Game",
+            0,
+            0,
+            window_w,
+            window_h,
+            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
     renderer = SDL_CreateRenderer(
-        window, 
-        -1, 
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+            window,
+            -1,
+            SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
 }
 
 
 //--------------------------------------------------------
-void 
+void
 Game_ImGui_Setup()
 {
     // IMGUI Setup
@@ -55,12 +54,12 @@ Game_ImGui_Setup()
 
 
 //--------------------------------------------------------
-int 
+int
 main(int argc, char* argv[])
 {
     AutoTiledTileMap auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 34, 28);
     WorldPosition tilemap_position = {0.0, 0.0};
-    Uint32 imgui_n_rows = auto_tile_map.n_rows; 
+    Uint32 imgui_n_rows = auto_tile_map.n_rows;
     Uint32 imgui_n_cols = auto_tile_map.n_cols;
     int tilemap_row_mouse_on_display = 0;
     int tilemap_col_mouse_on_display = 0;
@@ -68,22 +67,18 @@ main(int argc, char* argv[])
     int window_mouse_y = 0;
     float logical_mouse_x = 0;
     float logical_mouse_y = 0;
-    int relative_tilemap_mouse_x;
-    int relative_tilemap_mouse_y;
-
-
-
+    float relative_tilemap_mouse_x;
+    float relative_tilemap_mouse_y;
 
     Game_SDL_Setup();
     Game_ImGui_Setup();
-    
+
     float render_ratio = 1.0f;
 
     while(!should_quit)
     {
-        float new_window_w, new_window_h;
-        bool window_resized = false;
-        
+        float new_window_w;
+
         while(SDL_PollEvent(&event))
         {
             ImGui_ImplSDL2_ProcessEvent(&event);
@@ -94,17 +89,12 @@ main(int argc, char* argv[])
             }
             if( event.type == SDL_WINDOWEVENT ) {
                 if( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
-                    new_window_w = event.window.data1;
-                    new_window_h = event.window.data2;
-                    new_window_h = new_window_w / aspect_ratio;
-                    window_resized = true;
+                    new_window_w = (float) event.window.data1;
                     render_ratio = (float)((float)new_window_w/(float)window_w);
-                    // SDL_RenderSetScale(renderer, render_ratio, render_ratio);
                 }
             }
         }
 
-        bool ImGui_was_focused_this_frame = false;
         ImGui_ImplSDLRenderer_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
@@ -116,15 +106,15 @@ main(int argc, char* argv[])
         ImGui::InputInt("Num Rows", (int *)&imgui_n_rows);
         ImGui::InputInt("Num Cols", (int *)&imgui_n_cols);
         if(ImGui::Button("Update Row/Col Dimensions"))
-        { // Use a button so user can confirm this cause it could lose data if subtracting rows/columns
+        { // Use a button so user can confirm this because it could lose data if subtracting rows/columns
             AutoTiledTileMap_resize_and_shift_values(
-                &auto_tile_map,
-                imgui_n_rows,
-                imgui_n_cols
+                    &auto_tile_map,
+                    imgui_n_rows,
+                    imgui_n_cols
             );
         }
         if(ImGui::Button("Reset New Row/Col to Current"))
-        { // If user wants to reset to the current rows/cols cause they realized they don't wanna change it anymore
+        { // If user wants to reset to the current rows/cols because they realized they don't want to change it anymore
             imgui_n_rows = auto_tile_map.n_rows;
             imgui_n_cols = auto_tile_map.n_cols;
         }
@@ -132,7 +122,7 @@ main(int argc, char* argv[])
         ImGui::Text("Logical Mouse Pos: (%.2f, %.2f)", logical_mouse_x, logical_mouse_y);
         ImGui::Text("TileMap Index:     (%d, %d)", tilemap_row_mouse_on_display, tilemap_col_mouse_on_display);
 
-        ImGui_was_focused_this_frame = ImGui::IsWindowFocused();
+        bool ImGui_was_focused_this_frame = ImGui::IsWindowFocused();
 
         ImGui::End();
         ImGui::Render();
@@ -141,49 +131,44 @@ main(int argc, char* argv[])
         SDL_RenderSetScale(renderer, render_ratio, render_ratio); // set this here to run game code that's dependent on render scale like getting the logical mouse position
 
         // need to get logical mouse and relative mouse to determine what tile is being accessed since it won't be aligned completely with the window/renderer
-        
+
 
         Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
         SDL_RenderWindowToLogical(
-            renderer, 
-            window_mouse_x, 
-            window_mouse_y, 
-            &logical_mouse_x, 
-            &logical_mouse_y
+                renderer,
+                window_mouse_x,
+                window_mouse_y,
+                &logical_mouse_x,
+                &logical_mouse_y
         );
 
         // find out what tile the mouse cursor is in because this info is useful to the user
-        relative_tilemap_mouse_x = logical_mouse_x - (int)tilemap_position.x;
-        relative_tilemap_mouse_y = logical_mouse_y - (int)tilemap_position.y;
+        relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
+        relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
         if(relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
         {
-            tilemap_row_mouse_on_display = relative_tilemap_mouse_y / auto_tile_map.tile_size;
-            tilemap_col_mouse_on_display = relative_tilemap_mouse_x / auto_tile_map.tile_size;
-
-            // if(tilemap_row_mouse_on_display < auto_tile_map.n_rows && tilemap_col_mouse_on_display < auto_tile_map.n_cols)
-            // {
-            //     tile_selected = true;
-            // }
+            tilemap_row_mouse_on_display = static_cast<int>(relative_tilemap_mouse_y / (float) auto_tile_map.tile_size);
+            tilemap_col_mouse_on_display = static_cast<int>(relative_tilemap_mouse_x / (float) auto_tile_map.tile_size);
         }
 
-        // if you don't check for Imgui Window focused then if the imgui window is over the tilemap, 
+        // if you don't check for Imgui Window focused then if the imgui window is over the tilemap,
         // clicking on the imgui window and/or widgets then will affect the tilemap too
         // if the user is focused on the imgui window, then we want to ignore checking for tilemap selections
-        if(!ImGui_was_focused_this_frame) 
+        if(!ImGui_was_focused_this_frame)
         {
             if(mouse_button_state & SDL_BUTTON_LMASK)
             {
                 bool tile_selected = false;
-                int row_selected = 0;
-                int col_selected = 0;
+                int row_selected;
+                int col_selected;
 
-                relative_tilemap_mouse_x = logical_mouse_x - (int)tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - (int)tilemap_position.y;
+                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
+                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
 
                 if(relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
-                    row_selected = relative_tilemap_mouse_y / auto_tile_map.tile_size;
-                    col_selected = relative_tilemap_mouse_x / auto_tile_map.tile_size;
+                    row_selected = static_cast<int>(round(relative_tilemap_mouse_y)) / auto_tile_map.tile_size;
+                    col_selected = static_cast<int>(round(relative_tilemap_mouse_x)) / auto_tile_map.tile_size;
 
                     if(row_selected < auto_tile_map.n_rows && col_selected < auto_tile_map.n_cols)
                     {
@@ -199,16 +184,16 @@ main(int argc, char* argv[])
             else if(mouse_button_state & SDL_BUTTON_RMASK)
             {
                 bool tile_selected = false;
-                int row_selected = 0;
-                int col_selected = 0;
+                int row_selected;
+                int col_selected;
 
-                relative_tilemap_mouse_x = logical_mouse_x - (int)tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - (int)tilemap_position.y;
+                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
+                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
 
                 if(relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
-                    row_selected = relative_tilemap_mouse_y / auto_tile_map.tile_size;
-                    col_selected = relative_tilemap_mouse_x / auto_tile_map.tile_size;
+                    row_selected = static_cast<int>(relative_tilemap_mouse_y / (float)auto_tile_map.tile_size);
+                    col_selected = static_cast<int>(relative_tilemap_mouse_x / (float)auto_tile_map.tile_size);
 
                     if(row_selected < auto_tile_map.n_rows && col_selected < auto_tile_map.n_cols)
                     {
@@ -223,24 +208,24 @@ main(int argc, char* argv[])
             }
         }
 
-       
+
 
 
         SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
         SDL_RenderClear(renderer);
 
         SDL_Rect mouseRect = {
-            (int)logical_mouse_x,
-            (int)logical_mouse_y,
-            3,
-            3
+                (int)logical_mouse_x,
+                (int)logical_mouse_y,
+                3,
+                3
         };
 
         SDL_Rect relativeMouseRect = {
-            (int)relative_tilemap_mouse_x,
-            (int)relative_tilemap_mouse_y,
-            3,
-            3
+                (int)relative_tilemap_mouse_x,
+                (int)relative_tilemap_mouse_y,
+                3,
+                3
         };
 
         SDL_SetRenderDrawColor(renderer, 0,255,255,255);
@@ -258,10 +243,10 @@ main(int argc, char* argv[])
                 if(is_wall)
                 {
                     SDL_FRect wall_rect = {
-                        tilemap_position.x + (col * auto_tile_map.tile_size),
-                        tilemap_position.y + (row * auto_tile_map.tile_size),
-                        (float)auto_tile_map.tile_size,
-                        (float)auto_tile_map.tile_size
+                            tilemap_position.x + (float)(col * auto_tile_map.tile_size),
+                            tilemap_position.y + (float)(row * auto_tile_map.tile_size),
+                            (float)auto_tile_map.tile_size,
+                            (float)auto_tile_map.tile_size
                     };
 
                     SDL_SetRenderDrawColor(renderer, 255,0,0,255);
@@ -269,16 +254,16 @@ main(int argc, char* argv[])
                 }
             }
         }
-            
+
         SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
 
         util_draw_grid(
-            renderer, 
-            auto_tile_map.tile_size, 
-            tilemap_position.x, 
-            tilemap_position.y, 
-            auto_tile_map.n_rows, 
-            auto_tile_map.n_cols
+                renderer,
+                auto_tile_map.tile_size,
+                tilemap_position.x,
+                tilemap_position.y,
+                auto_tile_map.n_rows,
+                auto_tile_map.n_cols
         );
 
         SDL_RenderSetScale(renderer, 1, 1); // Set render scale back to 1, 1 before running imgui rendering, because imgui should stay the same size regardless of scale of the game world
