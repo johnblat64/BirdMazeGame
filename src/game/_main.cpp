@@ -225,7 +225,6 @@ main(int argc, char* argv[])
 
        
 
-
         SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
         SDL_RenderClear(renderer);
 
@@ -234,20 +233,11 @@ main(int argc, char* argv[])
             (int)logical_mouse_y,
             3,
             3
-        };
-
-        SDL_Rect relativeMouseRect = {
-            (int)relative_tilemap_mouse_x,
-            (int)relative_tilemap_mouse_y,
-            3,
-            3
-        };
+        }; // This helps us ensure that the logical mouse position will remain where the mouse actually is visually
 
         SDL_SetRenderDrawColor(renderer, 0,255,255,255);
         SDL_RenderFillRect(renderer, &mouseRect);
 
-        SDL_SetRenderDrawColor(renderer, 0,255,0,255);
-        SDL_RenderFillRect(renderer, &relativeMouseRect);
 
         // render tilemap walls
         for(int row = 0; row < auto_tile_map.n_rows; row++)
