@@ -24,7 +24,7 @@ void
 Game_SDL_Setup()
 {   
     SDLCall(SDL_Init(SDL_INIT_VIDEO));
-    SDLCall(SDL_SetError("This is a test!"));
+    //SDLCall(SDL_SetError("This is a test!"));
     window = SDL_CreateWindow(
             "Bird Maze Game",
             0,
@@ -33,11 +33,13 @@ Game_SDL_Setup()
             window_h,
             SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
+    SDLCallNull(window);
     renderer = SDL_CreateRenderer(
             window,
             -1,
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
+    SDLCallNull(renderer);
 }
 
 
@@ -186,7 +188,7 @@ main(int argc, char* argv[])
         ImGui::Render();
 
 
-        SDL_RenderSetScale(renderer, render_ratio, render_ratio); // set this here to run game code that's dependent on render scale like getting the logical mouse position
+        SDLCall(SDL_RenderSetScale(renderer, render_ratio, render_ratio)); // set this here to run game code that's dependent on render scale like getting the logical mouse position
 
         // need to get logical mouse and relative mouse to determine what tile is being accessed since it won't be aligned completely with the window/renderer
 
@@ -268,8 +270,8 @@ main(int argc, char* argv[])
 
 
 
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-        SDL_RenderClear(renderer);
+        SDLCall(SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255));
+        SDLCall(SDL_RenderClear(renderer));
 
         SDL_Rect mouseRect = {
             (int)logical_mouse_x,
@@ -279,8 +281,8 @@ main(int argc, char* argv[])
         }; // This helps us ensure that the logical mouse position will remain where the mouse actually is visually
 
 
-        SDL_SetRenderDrawColor(renderer, 0,255,255,255);
-        SDL_RenderFillRect(renderer, &mouseRect);
+        SDLCall(SDL_SetRenderDrawColor(renderer, 0,255,255,255));
+        SDLCall(SDL_RenderFillRect(renderer, &mouseRect));
 
 
         // render tilemap walls
@@ -298,13 +300,13 @@ main(int argc, char* argv[])
                             (float)auto_tile_map.tile_size
                     };
 
-                    SDL_SetRenderDrawColor(renderer, 255,0,0,255);
-                    SDL_RenderFillRectF(renderer, &wall_rect);
+                    SDLCall(SDL_SetRenderDrawColor(renderer, 255,0,0,255));
+                    SDLCall(SDL_RenderFillRectF(renderer, &wall_rect));
                 }
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+        SDLCall(SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255));
 
         util_draw_grid(
                 renderer,
@@ -315,7 +317,7 @@ main(int argc, char* argv[])
                 auto_tile_map.n_cols
         );
 
-        SDL_RenderSetScale(renderer, 1, 1); // Set render scale back to 1, 1 before running imgui rendering, because imgui should stay the same size regardless of scale of the game world
+        SDLCall(SDL_RenderSetScale(renderer, 1, 1)); // Set render scale back to 1, 1 before running imgui rendering, because imgui should stay the same size regardless of scale of the game world
 
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
