@@ -28,9 +28,13 @@ target_link_directories(
     PRIVATE external/flecs/Debug
 )
 
+if(MSVC)
+    add_definitions(-DMSVC)
+endif()
+
 if (WIN32)
     set(FLECSLIB flecs::flecs_static)
-    add_definitions(-DMSVC)
+
 else()
     set(FLECSLIB flecs::flecs)
 endif()
