@@ -6,6 +6,7 @@
 #include "../src/engine/tile/tilemap.h"
 #include "../src/components/components.h"
 #include "../src/engine/util/util_draw.h"
+#include "../src/engine/util/util_load_save.h"
 
 
 //--------------------------------------------------------
@@ -57,7 +58,23 @@ Game_ImGui_Setup()
 int
 main(int argc, char* argv[])
 {
-    AutoTiledTileMap auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 34, 28);
+    AutoTiledTileMap auto_tile_map;
+    auto_tile_map.tile_size = 30;
+    LoadFileResult load_result = util_load_AutoTiledTileMap_walls(
+        auto_tile_map.walls,
+        auto_tile_map.n_rows,
+        auto_tile_map.n_cols
+    );
+    if(load_result == LOAD_FILE_NOT_FOUND)
+    {
+        // just initialize it to something
+        auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 34, 28);
+    }
+    else if(load_result == LOAD_FULL_BYTES_NOT_READ)
+    {
+        exit(EXIT_FAILURE);
+    }
+
     WorldPosition tilemap_position = {0.0, 0.0};
     Uint32 imgui_n_rows = auto_tile_map.n_rows;
     Uint32 imgui_n_cols = auto_tile_map.n_cols;
@@ -121,6 +138,15 @@ main(int argc, char* argv[])
         ImGui::Text("Window Mouse Pos:  (%d, %d)", window_mouse_x, window_mouse_y);
         ImGui::Text("Logical Mouse Pos: (%.2f, %.2f)", logical_mouse_x, logical_mouse_y);
         ImGui::Text("TileMap Index:     (%d, %d)", tilemap_row_mouse_on_display, tilemap_col_mouse_on_display);
+
+        if(ImGui::Button("Save TileMap"))
+        {
+            util_save_AutoTiledTileMap_walls(
+                    auto_tile_map.walls,
+                    auto_tile_map.n_rows,
+                    auto_tile_map.n_cols
+            );
+        }
 
         bool ImGui_was_focused_this_frame = ImGui::IsWindowFocused();
 
