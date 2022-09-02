@@ -15,7 +15,6 @@ add_subdirectory(external/SDL2 EXCLUDE_FROM_ALL)
 
 add_subdirectory(external/flecs)
 
-
 target_include_directories(
     ${PROJECT_NAME}
     PRIVATE external
@@ -31,6 +30,7 @@ target_link_directories(
 
 if (WIN32)
     set(FLECSLIB flecs::flecs_static)
+    add_definitions(-DMSVC)
 else()
     set(FLECSLIB flecs::flecs)
 endif()
