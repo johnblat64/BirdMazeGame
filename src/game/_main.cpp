@@ -3,10 +3,10 @@
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_sdlrenderer.h"
 #include "flecs/flecs.h"
-#include "../src/engine/tile/tilemap.h"
-#include "../src/components/components.h"
-#include "../src/engine/util/util_draw.h"
-#include "../src/engine/util/util_load_save.h"
+#include "src/engine/tile/tilemap.h"
+#include "src/components/components.h"
+#include "src/engine/util/util_draw.h"
+#include "src/engine/util/util_load_save.h"
 
 
 //--------------------------------------------------------
