@@ -7,6 +7,7 @@
 #include "src/components/components.h"
 #include "src/engine/util/util_draw.h"
 #include "src/engine/util/util_load_save.h"
+#include "src/engine/util/util_error_handling.h"
 
 
 //--------------------------------------------------------
@@ -21,8 +22,9 @@ bool should_quit = false;
 //--------------------------------------------------------
 void
 Game_SDL_Setup()
-{
-    SDL_Init(SDL_INIT_VIDEO);
+{   
+    SDLCall(SDL_Init(SDL_INIT_VIDEO));
+    SDLCall(SDL_SetError("This is a test!"));
     window = SDL_CreateWindow(
             "Bird Maze Game",
             0,

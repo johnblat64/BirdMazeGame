@@ -3,7 +3,7 @@ project(BirdMazeGame)
 
 
 add_executable(BirdMazeGame
-        src/game/_main.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_load_save.cpp)
+        src/game/_main.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp)
 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN  TRUE)
 set_property(
