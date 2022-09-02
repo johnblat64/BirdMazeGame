@@ -15,10 +15,10 @@ enum LoadFileResult
 
 
 bool
-util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint16 n_rows, Uint16 n_cols);
+util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint32 n_rows, Uint32 n_cols);
 
 LoadFileResult
-util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint16 &n_rows, Uint16 &n_cols);
+util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint32 &n_rows, Uint32 &n_cols);
 
 
 #endif //BIRDMAZEGAME_UTIL_LOAD_SAVE_H

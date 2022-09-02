@@ -76,8 +76,19 @@ main(int argc, char* argv[])
     }
 
     WorldPosition tilemap_position = {0.0, 0.0};
+
     Uint32 imgui_n_rows = auto_tile_map.n_rows;
     Uint32 imgui_n_cols = auto_tile_map.n_cols;
+    Uint32 imgui_save_notification_duration_ms = 3000;
+    Uint32 imgui_save_notification_timer = 0;
+    char *imgui_tilemap_save_notification_text;
+    char *imgui_tilemap_save_notification_text_success = (char *)"Saved Successfully!";
+    char *imgui_tilemap_save_notification_text_failure = (char *)"Save Failed!!!!";
+
+    Uint32 delta_time_frame_start_ticks = 0;
+    Uint32 delta_time_frame_end_ticks = 0;
+    Uint32 delta_time_ms;
+
     int tilemap_row_mouse_on_display = 0;
     int tilemap_col_mouse_on_display = 0;
     int window_mouse_x = 0;
@@ -94,6 +105,10 @@ main(int argc, char* argv[])
 
     while(!should_quit)
     {
+        delta_time_ms = delta_time_frame_end_ticks - delta_time_frame_start_ticks;
+
+        delta_time_frame_start_ticks = SDL_GetTicks();
+
         float new_window_w;
 
         while(SDL_PollEvent(&event))
@@ -141,11 +156,26 @@ main(int argc, char* argv[])
 
         if(ImGui::Button("Save TileMap"))
         {
-            util_save_AutoTiledTileMap_walls(
+            bool success = util_save_AutoTiledTileMap_walls(
                     auto_tile_map.walls,
                     auto_tile_map.n_rows,
                     auto_tile_map.n_cols
             );
+            if(success)
+            {
+                imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_success;
+            }
+            else
+            {
+                imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_failure;
+            }
+            imgui_save_notification_timer = imgui_save_notification_duration_ms;
+        }
+
+        if(imgui_save_notification_timer > 0)
+        {
+            imgui_save_notification_timer -= delta_time_ms;
+            ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
         }
 
         bool ImGui_was_focused_this_frame = ImGui::IsWindowFocused();
@@ -288,6 +318,7 @@ main(int argc, char* argv[])
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
 
+        delta_time_frame_end_ticks = SDL_GetTicks();
     }
 
 }

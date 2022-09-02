@@ -16,7 +16,7 @@
 //---------------------------------------------------------------------------------------------------------------------
 // returns true if save was successful. Returns false if not.
 bool
-util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint16 n_rows, Uint16 n_cols)
+util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint32 n_rows, Uint32 n_cols)
 {
     assert(walls.size() == n_rows * n_cols); // make sure length of walls is correct
 
@@ -40,13 +40,13 @@ util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint16 n_rows, Uint16 
     }
 
     size_t num_bytes_written = 0;
-    num_bytes_written += write_context->write(write_context, (const void *) &n_rows, sizeof(Uint16), 1);
-    num_bytes_written += write_context->write(write_context, (const void *) &n_cols, sizeof(Uint16), 1);
-    num_bytes_written += write_context->write(write_context, (const void *) walls_as_char.data(), sizeof(char), n_rows * n_cols);
+    num_bytes_written += sizeof(n_rows) * write_context->write(write_context, (const void *) &n_rows, sizeof(n_rows), 1);
+    num_bytes_written += sizeof(n_cols) * write_context->write(write_context, (const void *) &n_cols, sizeof(n_cols), 1);
+    num_bytes_written += sizeof(char) * write_context->write(write_context, (const void *) walls_as_char.data(), sizeof(char), n_rows * n_cols);
 
     write_context->close(write_context);
 
-    size_t expected_num_bytes_written = sizeof(n_rows) + sizeof(n_cols) + ( sizeof(char) * (n_rows * n_cols) );
+    size_t expected_num_bytes_written = sizeof(n_rows) + sizeof(n_cols) + (sizeof(char) * (n_rows * n_cols) );
 
     if(num_bytes_written == expected_num_bytes_written)
     {
@@ -62,7 +62,7 @@ util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint16 n_rows, Uint16 
 
 //---------------------------------------------------------------------------------------------------------------------
 LoadFileResult
-util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint16 &n_rows, Uint16 &n_cols)
+util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint32 &n_rows, Uint32 &n_cols)
 {
     walls.clear();
     char *wall_data_as_chars = (char *) malloc(sizeof(char) * (n_rows * n_cols)); // why? https://stackoverflow.com/questions/46115669/why-does-stdvectorbool-have-no-data
@@ -81,15 +81,16 @@ util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint16 &n_rows, Uint1
     }
 
     size_t num_bytes_read = 0;
-    num_bytes_read += read_context->read(read_context, (void *) &n_rows, sizeof(Uint16), 1);
-    num_bytes_read += read_context->read(read_context, (void *) &n_cols, sizeof(Uint16), 1);
-    num_bytes_read += read_context->read(read_context, wall_data_as_chars, sizeof(char), n_rows * n_cols);
+    num_bytes_read += sizeof(n_rows) * read_context->read(read_context, (void *) &n_rows, sizeof(n_rows), 1);
+    num_bytes_read += sizeof(n_cols) * read_context->read(read_context, (void *) &n_cols, sizeof(n_cols), 1);
+    num_bytes_read += sizeof(char) * read_context->read(read_context, wall_data_as_chars, sizeof(char), n_rows * n_cols);
 
     read_context->close(read_context);
 
     size_t expected_num_bytes_read = sizeof(n_rows) + sizeof(n_cols) + (sizeof(char) * (n_rows * n_cols));
-    if(num_bytes_read == expected_num_bytes_read)
+    if(num_bytes_read != expected_num_bytes_read)
     {
+        fprintf(stderr, "did not read full bytes fro mtilemap file");
         free(wall_data_as_chars);
         return LOAD_FULL_BYTES_NOT_READ;
     }
