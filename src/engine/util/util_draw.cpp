@@ -2,21 +2,25 @@
 
 
 void 
-util_draw_grid(SDL_Renderer *renderer, int spacing, float x, float y, int n_rows, int n_cols) 
+util_draw_grid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols)
 {
-    int h = n_rows * spacing;
-    int w = n_cols * spacing;
+    Uint32 grid_h = n_rows * spacing;
+    Uint32 grid_w = n_cols * spacing;
 
-    int end_x = x + w;
-    int end_y = y + h;
+    float end_x = start_x + static_cast<float>(grid_w);
+    float end_y = start_y + static_cast<float>(grid_h);
 
-    for(float xi = x; xi <= end_x; xi += spacing) 
+    for(Uint32 col = 0; col <= n_cols; col++) // <=  so that it draws the rightmost border
     {
-        SDL_RenderDrawLineF(renderer, xi, y, xi, end_y);
+        float x = start_x + static_cast<float>(col * spacing);
+        SDL_RenderDrawLineF(renderer, x, start_y, x, end_y);
+
     }
 
-    for(float yi = y; yi <= end_y; yi += spacing) 
+    for(Uint32 row = 0; row <= n_rows; row++) // <=  so that it draws the rightmost border
     {
-        SDL_RenderDrawLineF(renderer, x, yi, end_x, yi);
+        float y = start_y + static_cast<float>(row * spacing);
+        SDL_RenderDrawLineF(renderer, start_x, y, end_x, y);
+
     }
 }
