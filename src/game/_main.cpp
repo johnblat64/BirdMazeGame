@@ -16,6 +16,7 @@ int window_w = 1920;
 int window_h = 1080;
 SDL_Renderer *renderer;
 SDL_Event event;
+SDL_Texture *texture;
 bool should_quit = false;
 
 
@@ -40,6 +41,7 @@ Game_SDL_Setup()
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
     SDLErrorHandleNull(renderer);
+
 }
 
 
@@ -50,6 +52,7 @@ Game_ImGui_Setup()
     // IMGUI Setup
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui::StyleColorsDark();
 
@@ -57,8 +60,28 @@ Game_ImGui_Setup()
     ImGui_ImplSDLRenderer_Init(renderer);
 }
 
+//----------------------------------------------------------
+void
+Create_Blank_Texture(int width, int height)
+{
+    //Create uninitialized texture
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
+    SDLErrorHandleNull(texture);
+    if (texture == NULL)
+    {
+        printf("Unable to create blank texture! SDL Error: %s\n", SDL_GetError());
+    }
+}
 
 //--------------------------------------------------------
+void 
+Set_Render_Target(SDL_Renderer* renderer, SDL_Texture* texture)
+{
+    SDLErrorHandle(SDL_SetRenderTarget(renderer, texture));   
+}
+//--------------------------------------------------------
+
+
 int
 main(int argc, char* argv[])
 {
@@ -72,7 +95,7 @@ main(int argc, char* argv[])
     if(load_result == LOAD_FILE_NOT_FOUND)
     {
         // just initialize it to something
-        auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 34, 28);
+        auto_tile_map = AutoTiledTileMap_init("my sheet", 30, 25, 25);
     }
     else if(load_result == LOAD_FULL_BYTES_NOT_READ)
     {
@@ -102,11 +125,15 @@ main(int argc, char* argv[])
     float relative_tilemap_mouse_x;
     float relative_tilemap_mouse_y;
 
+    ImVec2 panel_size = { (float)(auto_tile_map.tile_size * auto_tile_map.n_cols), (float)(auto_tile_map.tile_size * auto_tile_map.n_rows)};
+    ImVec2 screen_pos;
+
     Game_SDL_Setup();
     Game_ImGui_Setup();
 
     float render_ratio = 1.0f;
 
+    Create_Blank_Texture((int)panel_size.x, (int)panel_size.y);
     while(!should_quit)
     {
         delta_time_ms = delta_time_frame_end_ticks - delta_time_frame_start_ticks;
@@ -130,26 +157,95 @@ main(int argc, char* argv[])
                 }
             }
         }
-
+        
         ImGui_ImplSDLRenderer_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
+       
+        static bool dockSpaceOpen = true;
+        static bool opt_fullscreen = true;
+        static bool opt_padding = false;
+        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
+        // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+        // because it would be confusing to have two docking targets within each others.
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        if (opt_fullscreen)
+        {
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowViewport(viewport->ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        }
+        else
+        {
+            dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+        }
+
+        // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+        // and handle the pass-thru hole, so we ask Begin() to not render a background.
+        if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+            window_flags |= ImGuiWindowFlags_NoBackground;
+
+        // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+        // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+        // all active windows docked into it will lose their parent and become undocked.
+        // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+        // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+        if (!opt_padding)
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin("DockSpace Demo", &dockSpaceOpen, window_flags);
+        if (!opt_padding)
+            ImGui::PopStyleVar();
+
+        if (opt_fullscreen)
+            ImGui::PopStyleVar(2);
+
+        // Submit the DockSpace
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+        {
+            ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+        }
+
+
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                // Disabling fullscreen would allow the window to be moved to the front of other windows,
+                // which we can't undo at the moment without finer window depth/z control.
+                ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
+                ImGui::MenuItem("Padding", NULL, &opt_padding);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Close", NULL, false))
+                    dockSpaceOpen = false;
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+        // Auto Tile Menu
         ImGui::Begin("Auto Tiler");
         ImGui::Text("Tile Map Properties");
-        ImGui::DragFloat2("Offset Position", (float *)&tilemap_position);
-        ImGui::InputInt("Tile Size", (int *)&auto_tile_map.tile_size);
-        ImGui::InputInt("Num Rows", (int *)&imgui_n_rows);
-        ImGui::InputInt("Num Cols", (int *)&imgui_n_cols);
-        if(ImGui::Button("Update Row/Col Dimensions"))
+        ImGui::DragFloat2("Offset Position", (float*)&tilemap_position);
+        ImGui::InputInt("Tile Size", (int*)&auto_tile_map.tile_size);
+        ImGui::InputInt("Num Rows", (int*)&imgui_n_rows);
+        ImGui::InputInt("Num Cols", (int*)&imgui_n_cols);
+        if (ImGui::Button("Update Row/Col Dimensions"))
         { // Use a button so user can confirm this because it could lose data if subtracting rows/columns
             AutoTiledTileMap_resize_and_shift_values(
-                    &auto_tile_map,
-                    imgui_n_rows,
-                    imgui_n_cols
+                &auto_tile_map,
+                imgui_n_rows,
+                imgui_n_cols
             );
         }
-        if(ImGui::Button("Reset New Row/Col to Current"))
+        if (ImGui::Button("Reset New Row/Col to Current"))
         { // If user wants to reset to the current rows/cols because they realized they don't want to change it anymore
             imgui_n_rows = auto_tile_map.n_rows;
             imgui_n_cols = auto_tile_map.n_cols;
@@ -158,14 +254,14 @@ main(int argc, char* argv[])
         ImGui::Text("Logical Mouse Pos: (%.2f, %.2f)", logical_mouse_x, logical_mouse_y);
         ImGui::Text("TileMap Index:     (%d, %d)", tilemap_row_mouse_on_display, tilemap_col_mouse_on_display);
 
-        if(ImGui::Button("Save TileMap"))
+        if (ImGui::Button("Save TileMap"))
         {
             bool success = util_save_AutoTiledTileMap_walls(
-                    auto_tile_map.walls,
-                    auto_tile_map.n_rows,
-                    auto_tile_map.n_cols
+                auto_tile_map.walls,
+                auto_tile_map.n_rows,
+                auto_tile_map.n_cols
             );
-            if(success)
+            if (success)
             {
                 imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_success;
             }
@@ -176,7 +272,7 @@ main(int argc, char* argv[])
             imgui_save_notification_timer = imgui_save_notification_duration_ms;
         }
 
-        if(imgui_save_notification_timer > 0)
+        if (imgui_save_notification_timer > 0)
         {
             imgui_save_notification_timer -= delta_time_ms;
             ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
@@ -185,8 +281,25 @@ main(int argc, char* argv[])
         bool ImGui_was_focused_this_frame = ImGui::IsWindowFocused();
 
         ImGui::End();
-        ImGui::Render();
 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+        ImGui::Begin("Tilemap");
+        ImVec2 viewPortPanelSize = ImGui::GetContentRegionAvail();
+        if (panel_size.x != viewPortPanelSize.x && panel_size.y != viewPortPanelSize.y)
+        {
+            
+            SDL_DestroyTexture(texture);
+            Set_Render_Target(renderer, NULL);
+            Create_Blank_Texture((int)viewPortPanelSize.x, (int)viewPortPanelSize.y);
+            Set_Render_Target(renderer, texture);
+            panel_size = { viewPortPanelSize.x, viewPortPanelSize.y };
+        }
+        ImGui::Image(texture, panel_size);
+        screen_pos = ImGui::GetCursorScreenPos();
+        ImGui::End();
+        ImGui::PopStyleVar();
+
+        ImGui::End();
 
         SDLErrorHandle(SDL_RenderSetScale(renderer, render_ratio, render_ratio)); // set this here to run game code that's dependent on render scale like getting the logical mouse position
 
@@ -194,6 +307,18 @@ main(int argc, char* argv[])
 
 
         Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
+
+        // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
+        // nScreenX = fWorldX - offSetX
+        // nScreenX = fWorldY - offSetY
+        // Where in our case our world to screen should be 1 to 1. i.e. the world is being rendered at (fWorldX = 0, fWorldY = 0) relative to its display
+        // along with our screen starting from (0,0), hence the reason fWorldX and fWorldY do not appear below. 
+        window_mouse_x -= (int)screen_pos.x;
+        
+        // Since imgui has the convention of its screen position being measure from the BOTTOM LEFT CORNER rather than the TOP LEFT CORNER as one would usually be used to
+        // we need to add the panel size to the screen position to get the offset we would normally use for our formula
+        // i.e. we are transforming the y coodinate from bottomleft -> topleft.
+        window_mouse_y -= ((int)screen_pos.y - (int)panel_size.y);
         SDL_RenderWindowToLogical(
                 renderer,
                 window_mouse_x,
@@ -214,7 +339,7 @@ main(int argc, char* argv[])
         // if you don't check for Imgui Window focused then if the imgui window is over the tilemap,
         // clicking on the imgui window and/or widgets then will affect the tilemap too
         // if the user is focused on the imgui window, then we want to ignore checking for tilemap selections
-        if(!ImGui_was_focused_this_frame)
+        //  if(!ImGui_was_focused_this_frame)
         {
             if(mouse_button_state & SDL_BUTTON_LMASK)
             {
@@ -269,7 +394,7 @@ main(int argc, char* argv[])
         }
 
 
-
+        Set_Render_Target(renderer, texture);
         SDLErrorHandle(SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255));
         SDLErrorHandle(SDL_RenderClear(renderer));
 
@@ -319,6 +444,12 @@ main(int argc, char* argv[])
 
         SDLErrorHandle(SDL_RenderSetScale(renderer, 1, 1)); // Set render scale back to 1, 1 before running imgui rendering, because imgui should stay the same size regardless of scale of the game world
 
+        Set_Render_Target(renderer, NULL);
+
+
+
+        //Render to screen
+        ImGui::Render();
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
 
