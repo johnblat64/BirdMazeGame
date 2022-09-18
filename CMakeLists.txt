@@ -13,7 +13,6 @@ set_property(
 
 add_subdirectory(external/SDL2 EXCLUDE_FROM_ALL)
 
-add_subdirectory(external/flecs)
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -32,11 +31,5 @@ if(MSVC)
     add_definitions(-DMSVC)
 endif()
 
-if (WIN32)
-    set(FLECSLIB flecs::flecs_static)
 
-else()
-    set(FLECSLIB flecs::flecs)
-endif()
-
-target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main ${FLECSLIB})
+target_link_libraries(BirdMazeGame SDL2::SDL2 SDL2::SDL2main)
