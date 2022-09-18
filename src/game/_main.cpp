@@ -144,7 +144,7 @@ main(int argc, char* argv[])
 
     ImVec2 panel_size = { (float)(auto_tile_map.tile_size * auto_tile_map.n_cols), (float)(auto_tile_map.tile_size * auto_tile_map.n_rows)};
     ImVec2 screen_pos;
-    ImGuiID dockspace_id = NULL;
+    ImGuiID dockspace_id;
     bool firstLoop = true;
 
     Game_SDL_Setup();
