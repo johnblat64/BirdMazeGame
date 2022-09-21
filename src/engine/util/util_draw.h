@@ -3,7 +3,6 @@
 #include <external/SDL2/include/SDL.h>
 
 
-
 namespace Util
 {
     SDL_Texture *
