@@ -1,3 +1,6 @@
+#ifndef BIRDMAZEGAME_TILEMAP_H
+#define BIRDMAZEGAME_TILEMAP_H
+
 #include <stddef.h>
 #include <vector>
 #include <string>
@@ -12,32 +15,49 @@ const int TILE_MAP_NO_SPRITE = -1;
 #define MAX_COLS_ALLOWED 100
 
 
-struct AutoTiledTileMap
+struct Tilemap
 {
-    std::string tileset_sprite_sheet_name;
-    std::vector<Uint8> auto_tile_tileset_bitmasks;
     std::vector<int> tileset_sprite_sheet_indices;
-    std::vector<bool> walls; // used to determine auto tiling for the tileset_sprite_sheet_indices
-    Uint16 tile_size;
+    std::vector<char> is_collision_tiles; // used to determine auto tiling for the tileset_sprite_sheet_indices
+    Uint32 tile_size;
     Uint32 n_rows;
     Uint32 n_cols;
 };
 
+int
+two_dim_to_one_dim_index(int row, int col, int n_cols);
 
-AutoTiledTileMap
-AutoTiledTileMap_init(const char *sprite_sheet_name, Uint32 tile_size, Uint32 n_rows, Uint32 n_cols);
+Tilemap
+Tilemap_init(Uint32 tile_size, Uint32 n_rows, Uint32 n_cols);
 
 void
-AutoTiledTileMap_resize_and_shift_values(AutoTiledTileMap *tilemap, Uint32 new_n_rows, Uint32 new_n_cols);
+Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_n_cols);
 
 void
-set_2d(std::vector<bool> &v, int row, int col, int n_cols, int value);
+stdvector_2d_set(std::vector<bool> &v, int row, int col, int n_cols, int value);
 
 int
-at_2d(std::vector<bool> v, int row, int col, int n_cols);
+stdvector_at_2d(std::vector<bool> v, int row, int col, int n_cols);
 
-bool 
-AutoTiledTileMap_get_wall_value(AutoTiledTileMap tilemap, int row, int col);
+bool
+Tilemap_get_wall_value(Tilemap tilemap, int row, int col);
 
-void 
-AutoTiledTileMap_set_wall_value(AutoTiledTileMap *tilemap, int row, int col, bool wall_value);
+void
+Tilemap_set_collision_tile_value(Tilemap *tilemap, int row, int col, bool is_collision_tile);
+
+
+template <typename T>void
+stdvector_2d_set(std::vector<T> &v, int row, int col, int n_cols, int value)
+{
+    int index = two_dim_to_one_dim_index(row, col, n_cols);
+    v[index] = value;
+}
+
+template <typename T> T
+stdvector_at_2d(std::vector<T> v, int row, int col, int n_cols)
+{
+    int index = two_dim_to_one_dim_index(row, col, n_cols);
+    return v[index];
+}
+
+#endif

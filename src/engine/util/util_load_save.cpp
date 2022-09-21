@@ -13,65 +13,34 @@
 // The solution is to serialize
 
 
-//---------------------------------------------------------------------------------------------------------------------
-// returns true if save was successful. Returns false if not.
+
+// -----------------------------------------------------------------
 bool
-util_save_AutoTiledTileMap_walls(std::vector<bool> walls, Uint32 n_rows, Uint32 n_cols)
+Tilemap_save_to_file(const char *filename, Tilemap tilemap)
 {
-    assert(walls.size() == n_rows * n_cols); // make sure length of walls is correct
-
-    std::vector<char> walls_as_char;
-    for(int i = 0; i < walls.size(); i++)
+    SDL_RWops *write_context = SDL_RWFromFile(filename, "wb");
+    if(write_context == NULL)
     {
-        walls_as_char.push_back(walls[i]);
-    } // why? https://stackoverflow.com/questions/46115669/why-does-stdvectorbool-have-no-data
-
-    /**
-     * Format of file:
-     * n_rows n_cols vector data
-     */
-    SDL_RWops *write_context = SDL_RWFromFile("assets/auto-tiled-tile-map-walls-binary-data", "wb");
-
-    if(write_context == nullptr)
-    {
-        const char *error = SDL_GetError();
-        fprintf(stderr, "%s\n",  error);
-        exit(EXIT_FAILURE);
+        return false;
     }
+    util_save_vals_to_context<int>(
+            write_context,
+            tilemap.tileset_sprite_sheet_indices.data(),
+            tilemap.tileset_sprite_sheet_indices.size());
+    util_save_vals_to_context<char>(write_context, tilemap.is_collision_tiles.data(), tilemap.is_collision_tiles.size());
+    util_save_val_to_context<Uint32>(write_context, &tilemap.tile_size);
+    util_save_val_to_context<Uint32>(write_context, &tilemap.n_rows);
+    util_save_val_to_context<Uint32>(write_context, &tilemap.n_cols);
 
-    size_t num_bytes_written = 0;
-    num_bytes_written += sizeof(n_rows) * write_context->write(write_context, (const void *) &n_rows, sizeof(n_rows), 1);
-    num_bytes_written += sizeof(n_cols) * write_context->write(write_context, (const void *) &n_cols, sizeof(n_cols), 1);
-    num_bytes_written += sizeof(char) * write_context->write(write_context, (const void *) walls_as_char.data(), sizeof(char), n_rows * n_cols);
-
-    write_context->close(write_context);
-
-    size_t expected_num_bytes_written = sizeof(n_rows) + sizeof(n_cols) + (sizeof(char) * (n_rows * n_cols) );
-
-    if(num_bytes_written == expected_num_bytes_written)
-    {
-        printf("Saved TileMap");
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 
-
-
-//---------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------
 LoadFileResult
-util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint32 &n_rows, Uint32 &n_cols)
+Tilemap_load_from_file(const char *filename, Tilemap &tilemap)
 {
-    walls.clear();
-    char *wall_data_as_chars = (char *) malloc(sizeof(char) * (n_rows * n_cols)); // why? https://stackoverflow.com/questions/46115669/why-does-stdvectorbool-have-no-data
-
-    /**
-     * Format of file:
-     * n_rows n_cols vector data
-     */
-    SDL_RWops *read_context = SDL_RWFromFile("assets/auto-tiled-tile-map-walls-binary-data", "rb");
+    SDL_RWops *read_context = SDL_RWFromFile(filename, "rb");
 
     if(read_context == nullptr)
     {
@@ -80,27 +49,12 @@ util_load_AutoTiledTileMap_walls(std::vector<bool> &walls, Uint32 &n_rows, Uint3
         return LOAD_FILE_NOT_FOUND;
     }
 
-    size_t num_bytes_read = 0;
-    num_bytes_read += sizeof(n_rows) * read_context->read(read_context, (void *) &n_rows, sizeof(n_rows), 1);
-    num_bytes_read += sizeof(n_cols) * read_context->read(read_context, (void *) &n_cols, sizeof(n_cols), 1);
-    num_bytes_read += sizeof(char) * read_context->read(read_context, wall_data_as_chars, sizeof(char), n_rows * n_cols);
+    util_load_vals_from_context_to_vector<int>(read_context,tilemap.tileset_sprite_sheet_indices);
+    util_load_vals_from_context_to_vector<char>(read_context, tilemap.is_collision_tiles);
+    util_load_val_from_file<Uint32>(read_context, &tilemap.tile_size);
+    util_load_val_from_file<Uint32>(read_context, &tilemap.n_rows);
+    util_load_val_from_file<Uint32>(read_context, &tilemap.n_cols);
 
-    read_context->close(read_context);
-
-    size_t expected_num_bytes_read = sizeof(n_rows) + sizeof(n_cols) + (sizeof(char) * (n_rows * n_cols));
-    if(num_bytes_read != expected_num_bytes_read)
-    {
-        fprintf(stderr, "did not read full bytes fro mtilemap file");
-        free(wall_data_as_chars);
-        return LOAD_FULL_BYTES_NOT_READ;
-    }
-
-    for(int i = 0; i < n_rows * n_cols; i++)
-    {
-        walls.push_back((bool)wall_data_as_chars[i]);
-    }
-
-    free(wall_data_as_chars);
     printf("Loaded TileMap");
     return LOAD_SUCCESS;
 }

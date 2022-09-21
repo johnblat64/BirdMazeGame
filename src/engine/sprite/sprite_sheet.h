@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <external/SDL2/include/SDL.h>
 #include <vector>
 #include <map>
 
