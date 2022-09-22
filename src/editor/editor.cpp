@@ -157,7 +157,7 @@ namespace Editor
 
             if (ImGui::Button("Save TileMap"))
             {
-                bool success = Tilemap_save_to_file("tilemap", tilemap);
+                bool success = Tilemap_save_to_file("tilemap.json", tilemap);
                 if (success)
                 {
                     imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_success;

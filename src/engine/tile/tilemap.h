@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include "../sprite/sprite_sheet.h"
+#include <external/json/single_include/nlohmann/json.hpp>
+
 
 const int TILE_MAP_NO_SPRITE = -1;
 
@@ -22,6 +24,8 @@ struct Tilemap
     Uint32 tile_size;
     Uint32 n_rows;
     Uint32 n_cols;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tilemap, tileset_sprite_sheet_indices, is_collision_tiles, tile_size, n_rows, n_cols)
 };
 
 int

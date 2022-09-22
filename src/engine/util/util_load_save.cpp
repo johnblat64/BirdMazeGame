@@ -19,18 +19,15 @@ bool
 Tilemap_save_to_file(const char *filename, Tilemap tilemap)
 {
     SDL_RWops *write_context = SDL_RWFromFile(filename, "wb");
-    if(write_context == NULL)
+    if (write_context == nullptr)
     {
         return false;
     }
-    util_save_vals_to_context<int>(
-            write_context,
-            tilemap.tileset_sprite_sheet_indices.data(),
-            tilemap.tileset_sprite_sheet_indices.size());
-    util_save_vals_to_context<char>(write_context, tilemap.is_collision_tiles.data(), tilemap.is_collision_tiles.size());
-    util_save_val_to_context<Uint32>(write_context, &tilemap.tile_size);
-    util_save_val_to_context<Uint32>(write_context, &tilemap.n_rows);
-    util_save_val_to_context<Uint32>(write_context, &tilemap.n_cols);
+
+    nlohmann::json tilemap_json;
+    nlohmann::to_json(tilemap_json, tilemap);
+    std::string tilemap_json_str = tilemap_json.dump();
+    write_context->write(write_context, tilemap_json_str.c_str(), sizeof(char), tilemap_json_str.size());
 
     return true;
 }
@@ -42,18 +39,23 @@ Tilemap_load_from_file(const char *filename, Tilemap &tilemap)
 {
     SDL_RWops *read_context = SDL_RWFromFile(filename, "rb");
 
-    if(read_context == nullptr)
+    if (read_context == nullptr)
     {
         const char *error = SDL_GetError();
-        fprintf(stderr, "%s\n",  error);
+        fprintf(stderr, "%s\n", error);
         return LOAD_FILE_NOT_FOUND;
     }
 
-    util_load_vals_from_context_to_vector<int>(read_context,tilemap.tileset_sprite_sheet_indices);
-    util_load_vals_from_context_to_vector<char>(read_context, tilemap.is_collision_tiles);
-    util_load_val_from_file<Uint32>(read_context, &tilemap.tile_size);
-    util_load_val_from_file<Uint32>(read_context, &tilemap.n_rows);
-    util_load_val_from_file<Uint32>(read_context, &tilemap.n_cols);
+    size_t file_size = read_context->size(read_context);
+
+    std::string tilemap_json_str;
+    tilemap_json_str.resize(file_size);
+
+    read_context->read(read_context, &tilemap_json_str[0], sizeof(char), file_size);
+
+    nlohmann::json tilemap_json = nlohmann::json::parse(tilemap_json_str);
+
+    from_json(tilemap_json, tilemap);
 
     printf("Loaded TileMap");
     return LOAD_SUCCESS;
