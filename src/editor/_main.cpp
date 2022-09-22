@@ -65,7 +65,7 @@ int
 main(int argc, char *argv[])
 {
     Tilemap tilemap;
-    LoadFileResult load_result = Tilemap_load_from_file("tilemap", tilemap);
+    LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
 
     if (load_result == LOAD_FILE_NOT_FOUND)
     {
