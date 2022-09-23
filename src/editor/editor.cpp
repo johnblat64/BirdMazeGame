@@ -147,19 +147,13 @@ namespace Editor
         }
     }
 
-
-
-
     //--------------------------------------------------------
     void
     LoadTilesetImage()
     {
         int req_format = STBI_rgb_alpha;
         tileset_file_path_string = tileset_file_path;
-
-
         unsigned char *tileset = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height, &tileset_channels, req_format);
-
 
         if (tileset == NULL)
         {
@@ -184,10 +178,9 @@ namespace Editor
             ImGui::OpenPopup("Load Success");
             ImGui::SetNextWindowSize(window_size_popup);
             ImGui::SetNextWindowPos(window_center_popup);
-            
             if (ImGui::BeginPopupModal("Load Success"))
             {
-                ImGui::Text("Image loaded with height %i,\nwidth %i, and channel of %i!", tileset_height, tileset_width, tileset_channels);
+                ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width, tileset_channels);
 
                 ImGui::SetCursorPos(ImVec2{80, 50});
                 if (ImGui::Button("Ok", ImVec2(120, 0)))
@@ -479,7 +472,6 @@ namespace Editor
     }
 
     //--------------------------------------------------------
-    // To be used for autio tile menuswitching in the future probably.
     enum 
     TabView 
     {
@@ -491,6 +483,7 @@ namespace Editor
     void RenderTileset(int x, int y)
     {
         SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
+
         SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
     }
 
@@ -514,6 +507,7 @@ namespace Editor
             Util::RenderTargetSet(Global::renderer, tileset_window);
             
             RenderTileset(0, 0);
+
         }
         ImGui::End();
     }
