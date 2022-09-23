@@ -39,6 +39,8 @@ ImVec2 autotiler_window_size_current_frame;
 ImVec2 tileset_window_size_previous_frame;
 ImVec2 tileset_window_size_current_frame;
 ImVec2 screen_mouse_pos;
+ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
+ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
 bool load_tileset_pressed = false;
 bool load_tileset_image = false;
@@ -52,8 +54,7 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 char tileset_file_path[128];
-std::string tileset_file_path_string = "../src/png_test/";
-std::string dir_path = "../src/png_test/";
+std::string tileset_file_path_string = "";
 
 
 static bool dockSpaceOpen = true;
@@ -146,18 +147,25 @@ namespace Editor
         }
     }
 
+
+
+
     //--------------------------------------------------------
     void
     LoadTilesetImage()
     {
         int req_format = STBI_rgb_alpha;
-        tileset_file_path_string = dir_path + tileset_file_path;
+        tileset_file_path_string = tileset_file_path;
+
+
         unsigned char *tileset = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height, &tileset_channels, req_format);
+
 
         if (tileset == NULL)
         {
             ImGui::OpenPopup("Load Error");
-            ImGui::SetNextWindowSize(ImVec2{300, 75});
+            ImGui::SetNextWindowSize(window_size_popup);
+            ImGui::SetNextWindowPos(window_center_popup);
             if (ImGui::BeginPopupModal("Load Error"))
             {
                 ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
@@ -174,11 +182,12 @@ namespace Editor
         else
         {
             ImGui::OpenPopup("Load Success");
-            ImGui::SetNextWindowSize(ImVec2{300, 75});
+            ImGui::SetNextWindowSize(window_size_popup);
+            ImGui::SetNextWindowPos(window_center_popup);
             
             if (ImGui::BeginPopupModal("Load Success"))
             {
-                ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width, tileset_channels);
+                ImGui::Text("Image loaded with height %i,\nwidth %i, and channel of %i!", tileset_height, tileset_width, tileset_channels);
 
                 ImGui::SetCursorPos(ImVec2{80, 50});
                 if (ImGui::Button("Ok", ImVec2(120, 0)))
@@ -283,6 +292,8 @@ namespace Editor
             
         }
 
+        ImGui::SetNextWindowSize(window_size_popup);
+        ImGui::SetNextWindowPos(window_center_popup);
         if (ImGui::BeginPopupModal("Load Tileset"))
         {
             ImGui::Text("Enter file name");
@@ -468,6 +479,7 @@ namespace Editor
     }
 
     //--------------------------------------------------------
+    // To be used for autio tile menuswitching in the future probably.
     enum 
     TabView 
     {
@@ -476,18 +488,10 @@ namespace Editor
     };
 
     //--------------------------------------------------------
-    void RenderTileset(int x, int y, SDL_Rect *clip)
+    void RenderTileset(int x, int y)
     {
         SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
-
-        if (clip != NULL)
-        {
-            renderQuad.w = clip->w;
-            renderQuad.h = clip->h;
-        }
-
-
-        SDL_RenderCopy(Global::renderer, tileset_texture, clip, &renderQuad);
+        SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
     }
 
 
@@ -509,8 +513,7 @@ namespace Editor
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
             Util::RenderTargetSet(Global::renderer, tileset_window);
             
-            RenderTileset(0, 0, NULL);
-
+            RenderTileset(0, 0);
         }
         ImGui::End();
     }
