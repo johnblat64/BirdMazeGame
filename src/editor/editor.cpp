@@ -160,6 +160,7 @@ namespace Editor
         tileset_file_path_string = tileset_file_path;
         unsigned char *tileset = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height, &tileset_channels, req_format);
 
+
         if (tileset == NULL)
         {
             ImGui::OpenPopup("Load Error");
@@ -186,7 +187,7 @@ namespace Editor
             if (ImGui::BeginPopupModal("Load Success"))
             {
                 ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width, tileset_channels);
-
+                tile_cell_size = tileset_width / imgui_tileset_n_cols;
                 ImGui::SetCursorPos(ImVec2{80, 50});
                 if (ImGui::Button("Ok", ImVec2(120, 0)))
                 {
@@ -285,6 +286,7 @@ namespace Editor
             }
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
+            ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
         }
         ImGui::End();
 
@@ -493,7 +495,6 @@ namespace Editor
     //--------------------------------------------------------
     void RenderGrid(int startingCanvasX, int startingCanvasY)
     {
-        tile_cell_size = tileset_width / imgui_tileset_n_cols;
         int endingCanvasX = startingCanvasX + (tile_cell_size * imgui_tileset_n_cols);
         int endingCanvasY = startingCanvasY + (tile_cell_size * imgui_tileset_n_rows);
         SDL_SetRenderDrawColor(Global::renderer, line_color.r, line_color.g, line_color.b, line_color.a);
