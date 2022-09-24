@@ -42,7 +42,6 @@ ImVec2 screen_mouse_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
-bool load_tileset_pressed = false;
 bool load_tileset_image = false;
 
 
@@ -60,6 +59,22 @@ char tileset_file_path[128];
 std::string tileset_file_path_string = "";
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
+
+enum TabView
+{
+    TILEMAP_VIEW,
+    TILESET_VIEW
+};
+
+enum PopupView
+{
+    POPUP_FILE_WINDOW,
+    POPUP_CLOSE,
+    POPUP_LOAD_WINDOW
+};
+
+
+PopupView popup_current_state = POPUP_CLOSE;
 
 
 static bool dockSpaceOpen = true;
@@ -156,72 +171,104 @@ namespace Editor
     void
     LoadTilesetImage()
     {
-        int req_format = STBI_rgb_alpha;
-        tileset_file_path_string = tileset_file_path;
-        unsigned char *tileset = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height, &tileset_channels, req_format);
-
-
-        if (tileset == NULL)
+        if (popup_current_state == POPUP_LOAD_WINDOW)
         {
-            ImGui::OpenPopup("Load Error");
-            ImGui::SetNextWindowSize(window_size_popup);
-            ImGui::SetNextWindowPos(window_center_popup);
-            if (ImGui::BeginPopupModal("Load Error"))
+            int req_format = STBI_rgb_alpha;
+            tileset_file_path_string = tileset_file_path;
+            unsigned char *tileset_image_data = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height, &tileset_channels, req_format);
+
+
+            if (tileset_image_data == NULL)
             {
-                ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
-
-                ImGui::SetCursorPos(ImVec2{80, 50});
-                if (ImGui::Button("Ok", ImVec2(120, 0)))
+                ImGui::OpenPopup("Load Error");
+                ImGui::SetNextWindowSize(window_size_popup);
+                ImGui::SetNextWindowPos(window_center_popup);
+                if (ImGui::BeginPopupModal("Load Error"))
                 {
-                    ImGui::CloseCurrentPopup();
-                    load_tileset_image = false;
-                }
-                ImGui::EndPopup();
-            }
-        }
-        else
-        {
-            ImGui::OpenPopup("Load Success");
-            ImGui::SetNextWindowSize(window_size_popup);
-            ImGui::SetNextWindowPos(window_center_popup);
-            if (ImGui::BeginPopupModal("Load Success"))
-            {
-                ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width, tileset_channels);
-                tile_cell_size = tileset_width / imgui_tileset_n_cols;
-                ImGui::SetCursorPos(ImVec2{80, 50});
-                if (ImGui::Button("Ok", ImVec2(120, 0)))
-                {
-                    ImGui::CloseCurrentPopup();
-                    load_tileset_image = false;
+                    ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
 
-                    int depth, pitch;
-                    SDL_Surface* image_surface;
-                    Uint32 pixel_format;
-
-                    if (req_format == STBI_rgb)
+                    ImGui::SetCursorPos(ImVec2{80, 50});
+                    if (ImGui::Button("Ok", ImVec2(120, 0)))
                     {
-                        depth = 24;
-                        pitch = 3 * tileset_width;// 3 bytes per pixel * pixels per row
-                        pixel_format = SDL_PIXELFORMAT_RGB24;
+                        popup_current_state = POPUP_CLOSE;
+                        ImGui::CloseCurrentPopup();
                     }
-                    else
+                    ImGui::EndPopup();
+                }
+            }
+            else
+            {
+                ImGui::OpenPopup("Load Success");
+                ImGui::SetNextWindowSize(window_size_popup);
+                ImGui::SetNextWindowPos(window_center_popup);
+                if (ImGui::BeginPopupModal("Load Success"))
+                {
+                    ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width, tileset_channels);
+                    tile_cell_size = tileset_width / imgui_tileset_n_cols;
+                    ImGui::SetCursorPos(ImVec2{80, 50});
+                    if (ImGui::Button("Ok", ImVec2(120, 0)))
                     {
+                        popup_current_state = POPUP_CLOSE;
+                        ImGui::CloseCurrentPopup();
+
+                        int depth, pitch;
+                        SDL_Surface *image_surface;
+                        Uint32 pixel_format;
+
                         depth = 32;
                         pitch = 4 * tileset_width;
                         pixel_format = SDL_PIXELFORMAT_RGBA32;
-                    }
-                    image_surface = SDL_CreateRGBSurfaceWithFormatFrom(tileset, tileset_width, tileset_height, depth, pitch, pixel_format);
-                    SDLErrorHandleNull(image_surface);
-                    tileset_texture = SDL_CreateTextureFromSurface(Global::renderer, image_surface);
-                    SDLErrorHandleNull(tileset_texture);
-                    SDL_FreeSurface(image_surface);
 
-                    stbi_image_free(tileset);
+                        image_surface = SDL_CreateRGBSurfaceWithFormatFrom(tileset_image_data, tileset_width, tileset_height, depth, pitch, pixel_format);
+                        SDLErrorHandleNull(image_surface);
+                        tileset_texture = SDL_CreateTextureFromSurface(Global::renderer, image_surface);
+                        SDLErrorHandleNull(tileset_texture);
+                        SDL_FreeSurface(image_surface);
+
+                        stbi_image_free(tileset_image_data);
+                    }
+                    ImGui::EndPopup();
+                }
+            }
+        }
+    }
+
+    //--------------------------------------------------------
+    void
+    PopupWindow()
+    {
+        if (popup_current_state == POPUP_FILE_WINDOW)
+        {
+            ImGui::OpenPopup("Load Tileset");
+            ImGui::SetNextWindowSize(window_size_popup);
+            ImGui::SetNextWindowPos(window_center_popup);
+            if (ImGui::BeginPopupModal("Load Tileset"))
+            {
+                ImGui::Text("Enter file name");
+                ImGui::Separator();
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+                ImGui::InputText("File Name", tileset_file_path, IM_ARRAYSIZE(tileset_file_path));
+                ImGui::PopStyleVar();
+
+                if (ImGui::Button("OK", ImVec2(120, 0)))
+                {
+                    popup_current_state = POPUP_LOAD_WINDOW;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SetItemDefaultFocus();
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                {
+                    popup_current_state = POPUP_CLOSE;
+                    ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
             }
         }
-
+        LoadTilesetImage();
     }
 
 
@@ -269,14 +316,12 @@ namespace Editor
             }
 
             ImGui::Separator();
-            ImGui::SameLine();
             ImGui::Text("Tile Set Properties");
 
-            // Opening pop ups rely on on the ID stack, which means that you cant have it nested within a menu bar/etc. 
-            // read more here https://github.com/ocornut/imgui/issues/3051
+            
             if (ImGui::Button("Load Tileset"))
             {
-                load_tileset_pressed = true;
+                popup_current_state = POPUP_FILE_WINDOW;
             }
 
             if (imgui_save_notification_timer > 0)
@@ -288,54 +333,18 @@ namespace Editor
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
             ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
         }
+
         ImGui::End();
-
-        //************************************************************
-        if (load_tileset_pressed) 
-        {
-            ImGui::OpenPopup("Load Tileset");
-            load_tileset_pressed = false;
-            
-        }
-
-        ImGui::SetNextWindowSize(window_size_popup);
-        ImGui::SetNextWindowPos(window_center_popup);
-        if (ImGui::BeginPopupModal("Load Tileset"))
-        {
-            ImGui::Text("Enter file name");
-            ImGui::Separator();
-
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::InputText("File Name", tileset_file_path, IM_ARRAYSIZE(tileset_file_path));
-            ImGui::PopStyleVar();
-
-            if (ImGui::Button("OK", ImVec2(120, 0)))
-            {
-                load_tileset_image = true;
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::SetItemDefaultFocus();
-            ImGui::SameLine();
-
-            if (ImGui::Button("Cancel", ImVec2(120, 0))) 
-            { 
-                ImGui::CloseCurrentPopup(); 
-            }
-            ImGui::EndPopup();
-        }
-
-        if (load_tileset_image)
-        {
-            LoadTilesetImage();
-        }
+        
     }
 
+    
     
 
 
     //--------------------------------------------------------
-    void AutoTilerWindow(Tilemap &tilemap)
+    void 
+    AutoTilerWindow(Tilemap &tilemap)
     {
         Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
 
@@ -485,30 +494,6 @@ namespace Editor
     }
 
     //--------------------------------------------------------
-    enum 
-    TabView 
-    {
-        TILEMAP_VIEW,
-        TILESET_VIEW
-    };
-
-    //--------------------------------------------------------
-    void RenderGrid(int startingCanvasX, int startingCanvasY)
-    {
-        int endingCanvasX = startingCanvasX + (tile_cell_size * imgui_tileset_n_cols);
-        int endingCanvasY = startingCanvasY + (tile_cell_size * imgui_tileset_n_rows);
-        SDL_SetRenderDrawColor(Global::renderer, line_color.r, line_color.g, line_color.b, line_color.a);
-        for (int x = 0; x <= tile_cell_size; ++x)
-        {
-            SDL_RenderDrawLine(Global::renderer, (x * tile_cell_size + startingCanvasX), startingCanvasY, (x * tile_cell_size + startingCanvasX), endingCanvasY);
-        }
-        for (int y = 0; y <= imgui_tileset_n_rows ; ++y)
-        {
-            SDL_RenderDrawLine(Global::renderer, startingCanvasX, (y * tile_cell_size + startingCanvasY), endingCanvasX, (y * tile_cell_size + startingCanvasY));
-        }
-    }
-
-    //--------------------------------------------------------
     void RenderTileset(int x, int y)
     {
         SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
@@ -536,7 +521,7 @@ namespace Editor
             Util::RenderTargetSet(Global::renderer, tileset_window);
             
             RenderTileset(0, 0);
-            RenderGrid(0, 0);
+            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols);
 
         }
         ImGui::End();
@@ -566,6 +551,7 @@ namespace Editor
         AutoTilerWindow(tilemap);
         TilesetBitmaskerWindow();
         TilemapPropertiesPanelWindow(tilemap);
+        PopupWindow();
 
         ImGui::PopStyleVar();
         ImGui::End();
