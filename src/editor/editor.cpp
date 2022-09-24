@@ -42,7 +42,6 @@ ImVec2 screen_mouse_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
-bool load_tileset_image = false;
 
 
 Uint32 imgui_tilemap_n_rows;
