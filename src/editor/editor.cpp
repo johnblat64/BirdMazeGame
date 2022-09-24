@@ -50,11 +50,16 @@ Uint32 imgui_tilemap_n_rows;
 Uint32 imgui_tilemap_n_cols;
 Uint32 imgui_save_notification_duration_ms = 3000;
 Uint32 imgui_save_notification_timer = 0;
+Uint32 imgui_tileset_n_rows = 8;
+Uint32 imgui_tileset_n_cols = 20;
+Uint32 tile_cell_size;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 char tileset_file_path[128];
 std::string tileset_file_path_string = "";
+
+SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 
 
 static bool dockSpaceOpen = true;
@@ -262,6 +267,10 @@ namespace Editor
                 imgui_save_notification_timer = imgui_save_notification_duration_ms;
             }
 
+            ImGui::Separator();
+            ImGui::SameLine();
+            ImGui::Text("Tile Set Properties");
+
             // Opening pop ups rely on on the ID stack, which means that you cant have it nested within a menu bar/etc. 
             // read more here https://github.com/ocornut/imgui/issues/3051
             if (ImGui::Button("Load Tileset"))
@@ -274,6 +283,8 @@ namespace Editor
                 imgui_save_notification_timer -= Global::delta_time_ms;
                 ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
             }
+            ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
+            ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
         }
         ImGui::End();
 
@@ -480,6 +491,23 @@ namespace Editor
     };
 
     //--------------------------------------------------------
+    void RenderGrid(int startingCanvasX, int startingCanvasY)
+    {
+        tile_cell_size = tileset_width / imgui_tileset_n_cols;
+        int endingCanvasX = startingCanvasX + (tile_cell_size * imgui_tileset_n_cols);
+        int endingCanvasY = startingCanvasY + (tile_cell_size * imgui_tileset_n_rows);
+        SDL_SetRenderDrawColor(Global::renderer, line_color.r, line_color.g, line_color.b, line_color.a);
+        for (int x = 0; x <= tile_cell_size; ++x)
+        {
+            SDL_RenderDrawLine(Global::renderer, (x * tile_cell_size + startingCanvasX), startingCanvasY, (x * tile_cell_size + startingCanvasX), endingCanvasY);
+        }
+        for (int y = 0; y <= imgui_tileset_n_rows ; ++y)
+        {
+            SDL_RenderDrawLine(Global::renderer, startingCanvasX, (y * tile_cell_size + startingCanvasY), endingCanvasX, (y * tile_cell_size + startingCanvasY));
+        }
+    }
+
+    //--------------------------------------------------------
     void RenderTileset(int x, int y)
     {
         SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
@@ -507,6 +535,7 @@ namespace Editor
             Util::RenderTargetSet(Global::renderer, tileset_window);
             
             RenderTileset(0, 0);
+            RenderGrid(0, 0);
 
         }
         ImGui::End();
