@@ -1,6 +1,3 @@
-//
-// Created by frog on 9/19/22.
-//
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
 #include "imgui/imgui_internal.h"
@@ -10,9 +7,16 @@
 #include "src/engine/util/util_draw.h"
 #include "src/engine/global.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "stb/stb_image.h"
+#include <string>
+
 
 ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global::window_h)};
 SDL_Texture *target_texture;
+SDL_Texture *tileset_window;
+SDL_Texture *tileset_texture;
 
 
 WorldPosition tilemap_position = {0.0, 0.0};
@@ -21,6 +25,9 @@ int tilemap_row_mouse_on_display = 0;
 int tilemap_col_mouse_on_display = 0;
 int window_mouse_x = 0;
 int window_mouse_y = 0;
+int tileset_width = 1;
+int tileset_height = 1;
+int tileset_channels = 0;
 float logical_mouse_x = 0;
 float logical_mouse_y = 0;
 float relative_tilemap_mouse_x;
@@ -28,7 +35,11 @@ float relative_tilemap_mouse_y;
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
+ImVec2 tileset_window_size_previous_frame;
+ImVec2 tileset_window_size_current_frame;
 ImVec2 screen_mouse_pos;
+ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
+ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
 
 
@@ -36,9 +47,22 @@ Uint32 imgui_tilemap_n_rows;
 Uint32 imgui_tilemap_n_cols;
 Uint32 imgui_save_notification_duration_ms = 3000;
 Uint32 imgui_save_notification_timer = 0;
+Uint32 imgui_tileset_n_rows = 8;
+Uint32 imgui_tileset_n_cols = 20;
+Uint32 tile_cell_size;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
+char tileset_file_path[128];
+std::string tileset_file_path_string = "";
+
+SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
+
+enum TabView
+{
+    TILEMAP_VIEW,
+    TILESET_VIEW
+};
 
 
 static bool dockSpaceOpen = true;
@@ -53,11 +77,17 @@ namespace Editor
                                                (float) (tilemap.tile_size * tilemap.n_rows)};
         autotiler_window_size_previous_frame = autotiler_window_size_current_frame;
 
+        tileset_window_size_current_frame = {(float) (tilemap.tile_size * tilemap.n_cols),
+                                             (float) (tilemap.tile_size * tilemap.n_rows)};
+        tileset_window_size_previous_frame = autotiler_window_size_current_frame;
+
         imgui_tilemap_n_rows = tilemap.n_rows;
         imgui_tilemap_n_cols = tilemap.n_cols;
 
         target_texture = Util::Texture_Create_Blank((int) autotiler_window_size_current_frame.x,
                                                     (int) autotiler_window_size_current_frame.y);
+
+        tileset_window = Util::Texture_Create_Blank(tileset_width, tileset_height);
     }
 
 
@@ -126,10 +156,124 @@ namespace Editor
     }
 
 
+    //--------------------------------------------------------
+    // this function should probably get refactored out eventually cause we'll need to use the same logic for all sprite sheets
+    //
+    // returns true if success, false if image_data is NULL
+    bool
+    TilesetLoad()
+    {
+        int req_format = STBI_rgb_alpha;
+        tileset_file_path_string = tileset_file_path;
+        unsigned char *tileset_image_data = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height,
+                                                      &tileset_channels, req_format);
+        if (tileset_image_data == NULL)
+        {
+            return false;
+        }
+
+        tile_cell_size = tileset_width / imgui_tileset_n_cols;
+
+        int depth, pitch;
+        SDL_Surface *image_surface;
+        Uint32 pixel_format;
+
+        depth = 32;
+        pitch = 4 * tileset_width;
+        pixel_format = SDL_PIXELFORMAT_RGBA32;
+
+        image_surface = SDL_CreateRGBSurfaceWithFormatFrom(tileset_image_data, tileset_width, tileset_height, depth,
+                                                           pitch, pixel_format);
+        SDLErrorHandleNull(image_surface);
+        tileset_texture = SDL_CreateTextureFromSurface(Global::renderer, image_surface);
+        SDLErrorHandleNull(tileset_texture);
+        SDL_FreeSurface(image_surface);
+
+        stbi_image_free(tileset_image_data);
+
+        return true;
+
+
+    }
+
+    //--------------------------------------------------------
+    void
+    LoadTilesetImageResultPopupWindow()
+    {
+        ImGui::SetNextWindowSize(window_size_popup);
+        ImGui::SetNextWindowPos(window_center_popup);
+        if (ImGui::BeginPopupModal("TilesetLoadError"))
+        {
+            ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
+
+            ImGui::SetCursorPos(ImVec2{80, 50});
+            if (ImGui::Button("Ok", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        else if (ImGui::BeginPopupModal("TilesetLoadSuccess"))
+        {
+            ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width,
+                        tileset_channels);
+            ImGui::SetCursorPos(ImVec2{80, 50});
+            if (ImGui::Button("Ok", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
+
+    //--------------------------------------------------------
+    void
+    LoadTilesetPopupWindow()
+    {
+        ImGui::SetNextWindowSize(window_size_popup);
+        ImGui::SetNextWindowPos(window_center_popup);
+        if (ImGui::BeginPopupModal("TilesetLoad"))
+        {
+            ImGui::Text("Enter file name");
+            ImGui::Separator();
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            ImGui::InputText("File Name", tileset_file_path, IM_ARRAYSIZE(tileset_file_path));
+            ImGui::PopStyleVar();
+
+            if (ImGui::Button("Load", ImVec2(120, 0)))
+            {
+                bool success = TilesetLoad();
+                if (success)
+                {
+                    ImGui::OpenPopup("TilesetLoadSuccess");
+                }
+                else
+                {
+                    ImGui::OpenPopup("TilesetLoadError");
+                }
+            }
+
+            ImGui::SetItemDefaultFocus();
+            ImGui::SameLine();
+
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            LoadTilesetImageResultPopupWindow();
+
+            ImGui::EndPopup();
+        }
+
+    }
+
+
     //-----------------------------------------------------------
     void
-    TilemapPropertiesPanelWindow(Tilemap &tilemap)
+    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap)
     {
+
         if (ImGui::Begin("Auto Tilemap Properties"))
         {
 
@@ -139,15 +283,14 @@ namespace Editor
             ImGui::InputInt("Num Rows", (int *) &imgui_tilemap_n_rows);
             ImGui::InputInt("Num Cols", (int *) &imgui_tilemap_n_cols);
             if (ImGui::Button("Update Row/Col Dimensions"))
-            { // Use a button so user can confirm this because it could lose data if subtracting rows/columns
+            {// Use a button so user can confirm this because it could lose data if subtracting rows/columns
                 Tilemap_resize_and_shift_values(
                         &tilemap,
                         imgui_tilemap_n_rows,
-                        imgui_tilemap_n_cols
-                );
+                        imgui_tilemap_n_cols);
             }
             if (ImGui::Button("Reset New Row/Col to Current"))
-            { // If user wants to reset to the current rows/cols because they realized they don't want to change it anymore
+            {// If user wants to reset to the current rows/cols because they realized they don't want to change it anymore
                 imgui_tilemap_n_rows = tilemap.n_rows;
                 imgui_tilemap_n_cols = tilemap.n_cols;
             }
@@ -169,18 +312,35 @@ namespace Editor
                 imgui_save_notification_timer = imgui_save_notification_duration_ms;
             }
 
+            ImGui::Separator();
+            ImGui::Text("Tile Set Properties");
+
+
+            if (ImGui::Button("Load Tileset"))
+            {
+                ImGui::OpenPopup("TilesetLoad");
+            }
+
             if (imgui_save_notification_timer > 0)
             {
                 imgui_save_notification_timer -= Global::delta_time_ms;
                 ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
             }
+            ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
+            ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
+            ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
         }
+
+        LoadTilesetPopupWindow();
+
         ImGui::End();
+
     }
 
 
     //--------------------------------------------------------
-    void AutoTilerWindow(Tilemap &tilemap)
+    void
+    TilemapAutoTilerWindow(Tilemap &tilemap)
     {
         Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
 
@@ -201,8 +361,7 @@ namespace Editor
                 window_mouse_x,
                 window_mouse_y,
                 &logical_mouse_x,
-                &logical_mouse_y
-        );
+                &logical_mouse_y);
 
         // find out what tile the mouse cursor is in because this info is useful to the user
         relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
@@ -220,8 +379,8 @@ namespace Editor
             autotiler_window_size_previous_frame = autotiler_window_size_current_frame;
             autotiler_window_size_current_frame = ImGui::GetContentRegionAvail();
 
-            if (autotiler_window_size_previous_frame.x != autotiler_window_size_current_frame.x
-                || autotiler_window_size_previous_frame.y != autotiler_window_size_current_frame.y)
+            if (autotiler_window_size_previous_frame.x != autotiler_window_size_current_frame.x ||
+                autotiler_window_size_previous_frame.y != autotiler_window_size_current_frame.y)
             {
                 SDL_DestroyTexture(target_texture);
                 target_texture = Util::Texture_Create_Blank((int) autotiler_window_size_current_frame.x,
@@ -280,7 +439,6 @@ namespace Editor
                 {
                     Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, false);
                 }
-
             }
 
             Util::RenderTargetSet(Global::renderer, target_texture);
@@ -291,8 +449,7 @@ namespace Editor
                     (int) logical_mouse_x,
                     (int) logical_mouse_y,
                     3,
-                    3
-            }; // This helps us ensure that the logical mouse position will remain where the mouse actually is visually
+                    3};// This helps us ensure that the logical mouse position will remain where the mouse actually is visually
 
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 0, 255, 255, 255));
@@ -312,8 +469,7 @@ namespace Editor
                                 tilemap_position.x + (float) (col * tilemap.tile_size),
                                 tilemap_position.y + (float) (row * tilemap.tile_size),
                                 (float) tilemap.tile_size,
-                                (float) tilemap.tile_size
-                        };
+                                (float) tilemap.tile_size};
 
                         SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 255, 0, 0, 255));
                         SDLErrorHandle(SDL_RenderFillRectF(Global::renderer, &wall_rect));
@@ -329,10 +485,17 @@ namespace Editor
                     tilemap_position.x,
                     tilemap_position.y,
                     tilemap.n_rows,
-                    tilemap.n_cols
-            );
+                    tilemap.n_cols);
         }
         ImGui::End();
+    }
+
+    //--------------------------------------------------------
+    void RenderTileset(int x, int y)
+    {
+        SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
+
+        SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
     }
 
 
@@ -342,7 +505,21 @@ namespace Editor
     {
         if (ImGui::Begin("Tileset"))
         {
-            ImGui::Text("Test");
+
+            tileset_window_size_current_frame = {(float) tileset_width, (float) tileset_height};
+            if (tileset_window_size_previous_frame.x != tileset_window_size_current_frame.x ||
+                tileset_window_size_previous_frame.y != tileset_window_size_current_frame.y)
+            {
+                SDL_DestroyTexture(tileset_window);
+                tileset_window = Util::Texture_Create_Blank((int) tileset_window_size_current_frame.x,
+                                                            (int) tileset_window_size_current_frame.y);
+            }
+
+            ImGui::Image(tileset_window, tileset_window_size_current_frame);
+            Util::RenderTargetSet(Global::renderer, tileset_window);
+
+            RenderTileset(0, 0);
+            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols);
 
         }
         ImGui::End();
@@ -369,9 +546,9 @@ namespace Editor
 
         DockSpaceSetup();
         MenuBar();
-        AutoTilerWindow(tilemap);
+        TilemapAutoTilerWindow(tilemap);
         TilesetBitmaskerWindow();
-        TilemapPropertiesPanelWindow(tilemap);
+        TilemapAndTilesetPropertiesPanelWindow(tilemap);
 
         ImGui::PopStyleVar();
         ImGui::End();
