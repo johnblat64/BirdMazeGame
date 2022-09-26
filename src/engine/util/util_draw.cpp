@@ -27,8 +27,11 @@ namespace Util
 
     //--------------------------------------------------------
     void
-    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols)
+    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
+             SDL_Color color)
     {
+        SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
         Uint32 grid_h = n_rows * spacing;
         Uint32 grid_w = n_cols * spacing;
 

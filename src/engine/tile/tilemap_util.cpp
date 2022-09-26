@@ -4,6 +4,9 @@
 
 #include "tilemap.h"
 #include <vector>
+#include <src/engine/global.h>
+#include <src/engine/util/util_error_handling.h>
+#include <src/engine/util/util_draw.h>
 
 
 int
@@ -139,4 +142,43 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
 
         tilemap->n_cols = new_n_cols;
     }
+}
+
+
+void
+TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color)
+{
+    SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
+    for (int row = 0; row < tilemap.n_rows; row++)
+    {
+        for (int col = 0; col < tilemap.n_cols; col++)
+        {
+            bool is_collidable_tile = (bool) stdvector_at_2d<char>(tilemap.is_collision_tiles, row, col,
+                                                                   tilemap.n_cols);
+            if (is_collidable_tile)
+            {
+                SDL_FRect collidable_tile_rect = {
+                        pos_x + (float) (col * tilemap.tile_size),
+                        pos_y + (float) (row * tilemap.tile_size),
+                        (float) tilemap.tile_size,
+                        (float) tilemap.tile_size};
+
+                SDLErrorHandle(SDL_RenderFillRectF(Global::renderer, &collidable_tile_rect));
+            }
+        }
+    }
+}
+
+
+void
+TilemapGridRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color)
+{
+    Util::DrawGrid(Global::renderer,
+                   tilemap.tile_size,
+                   pos_x,
+                   pos_y,
+                   tilemap.n_rows,
+                   tilemap.n_cols,
+                   color);
 }

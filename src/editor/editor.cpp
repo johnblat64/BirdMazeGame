@@ -457,35 +457,15 @@ namespace Editor
 
 
             // render tilemap collision_tiles
-            for (int row = 0; row < tilemap.n_rows; row++)
-            {
-                for (int col = 0; col < tilemap.n_cols; col++)
-                {
-                    bool is_collidable_tile = (bool) stdvector_at_2d<char>(tilemap.is_collision_tiles, row, col,
-                                                                           tilemap.n_cols);
-                    if (is_collidable_tile)
-                    {
-                        SDL_FRect wall_rect = {
-                                tilemap_position.x + (float) (col * tilemap.tile_size),
-                                tilemap_position.y + (float) (row * tilemap.tile_size),
-                                (float) tilemap.tile_size,
-                                (float) tilemap.tile_size};
+            TilemapCollisionTileRectsRender(tilemap,
+                                            tilemap_position.x,
+                                            tilemap_position.y,
+                                            (SDL_Color) {255, 0, 0, 255});
+            TilemapGridRender(tilemap,
+                              tilemap_position.x,
+                              tilemap_position.y,
+                              (SDL_Color) {100, 100, 100, 255});
 
-                        SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 255, 0, 0, 255));
-                        SDLErrorHandle(SDL_RenderFillRectF(Global::renderer, &wall_rect));
-                    }
-                }
-            }
-
-            SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 100, 100, 100, 255));
-
-            Util::DrawGrid(
-                    Global::renderer,
-                    tilemap.tile_size,
-                    tilemap_position.x,
-                    tilemap_position.y,
-                    tilemap.n_rows,
-                    tilemap.n_cols);
         }
         ImGui::End();
     }
@@ -519,7 +499,8 @@ namespace Editor
             Util::RenderTargetSet(Global::renderer, tileset_window);
 
             RenderTileset(0, 0);
-            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols);
+            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
+                           SDL_Color());
 
         }
         ImGui::End();

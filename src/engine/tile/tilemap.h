@@ -64,4 +64,10 @@ stdvector_at_2d(std::vector<T> v, int row, int col, int n_cols)
     return v[index];
 }
 
+void
+TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color);
+
+void
+TilemapGridRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color);
+
 #endif

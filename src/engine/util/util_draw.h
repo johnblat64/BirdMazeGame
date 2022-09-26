@@ -12,5 +12,6 @@ namespace Util
     RenderTargetSet(SDL_Renderer *renderer, SDL_Texture *texture);
 
     void
-    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols);
+    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
+             SDL_Color color);
 }
