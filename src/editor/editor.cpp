@@ -56,7 +56,7 @@ char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfull
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
 nfdchar_t *image_file_path = "";
-nfdfilteritem_t image_file_filter[1] = {{"Image file", "png,jpeg"}};
+nfdfilteritem_t image_file_filter[1] = {{"Image file", "png"}};
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 
@@ -216,21 +216,9 @@ namespace Editor
         }
     }
 
-    //--------------------------------------------------------
-
-    void LoadTileSet()
-    {
-        bool success = TilesetLoad();
-        
-        if (!success)
-        {
-            ImGui::OpenPopup("TilesetLoadError");
-        }
-    }
-
     //-----------------------------------------------------------
     void 
-    LoadImageFromNativeFileDialog()
+    SetImageFilePathFromDialog()
     {
         // You can initialize nfd either at the start and end of the program or, like here, everytime you want to show the file dialog.
         NFD_Init();
@@ -302,12 +290,17 @@ namespace Editor
             ImGui::SameLine();
             if (ImGui::Button("Browse"))
             {
-                LoadImageFromNativeFileDialog();
+                SetImageFilePathFromDialog();
             }
             ImGui::SameLine();
             if (ImGui::Button("Load Tileset"))
             {
-                LoadTileSet();
+                bool success = TilesetLoad();
+
+                if (!success)
+                {
+                    ImGui::OpenPopup("TilesetLoadError");
+                }
             }
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
             if (imgui_save_notification_timer > 0)
