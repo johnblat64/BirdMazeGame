@@ -201,10 +201,10 @@ namespace Editor
     void
     LoadTilesetImageResultPopupWindow()
     {
-        ImGui::SetNextWindowSize(window_size_popup);
-        ImGui::SetNextWindowPos(window_center_popup);
         if (ImGui::BeginPopupModal("TilesetLoadError"))
         {
+            ImGui::SetWindowSize(window_size_popup);
+            ImGui::SetWindowPos(window_center_popup);
             ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
 
             ImGui::SetCursorPos(ImVec2{80, 50});
@@ -216,6 +216,8 @@ namespace Editor
         }
         else if (ImGui::BeginPopupModal("TilesetLoadSuccess"))
         {
+            ImGui::SetWindowSize(window_size_popup);
+            ImGui::SetWindowPos(window_center_popup);
             ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width,
                         tileset_channels);
             ImGui::SetCursorPos(ImVec2{80, 50});
@@ -232,6 +234,7 @@ namespace Editor
     void LoadTileSet()
     {
         bool success = TilesetLoad();
+        
         if (success)
         {
             ImGui::OpenPopup("TilesetLoadSuccess");
