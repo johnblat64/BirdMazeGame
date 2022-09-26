@@ -214,19 +214,6 @@ namespace Editor
             }
             ImGui::EndPopup();
         }
-        else if (ImGui::BeginPopupModal("TilesetLoadSuccess"))
-        {
-            ImGui::SetWindowSize(window_size_popup);
-            ImGui::SetWindowPos(window_center_popup);
-            ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width,
-                        tileset_channels);
-            ImGui::SetCursorPos(ImVec2{80, 50});
-            if (ImGui::Button("Ok", ImVec2(120, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
     }
 
     //--------------------------------------------------------
@@ -235,11 +222,7 @@ namespace Editor
     {
         bool success = TilesetLoad();
         
-        if (success)
-        {
-            ImGui::OpenPopup("TilesetLoadSuccess");
-        }
-        else
+        if (!success)
         {
             ImGui::OpenPopup("TilesetLoadError");
         }
@@ -255,7 +238,7 @@ namespace Editor
         nfdresult_t result = NFD_OpenDialog(&image_file_path, image_file_filter, 1, NULL);
         if (result == NFD_OKAY) 
         {
-            LoadTileSet();
+            // Since we are loading the tileset in a separate button we dont really do anything here.
         }
         else if ( result == NFD_CANCEL)
         {
@@ -263,6 +246,7 @@ namespace Editor
         }
         else 
         {
+            // Again, another area where what we do is still up in the air.
             printf("Error: %s", NFD_GetError());
         }
 
@@ -316,11 +300,16 @@ namespace Editor
 
             ImGui::InputText(" ", image_file_path, IM_ARRAYSIZE(image_file_path), ImGuiInputTextFlags_ReadOnly);
             ImGui::SameLine();
-            if (ImGui::Button("Load Tileset"))
+            if (ImGui::Button("Browse"))
             {
                 LoadImageFromNativeFileDialog();
             }
-
+            ImGui::SameLine();
+            if (ImGui::Button("Load Tileset"))
+            {
+                LoadTileSet();
+            }
+            ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
             if (imgui_save_notification_timer > 0)
             {
                 imgui_save_notification_timer -= Global::delta_time_ms;
