@@ -6,6 +6,7 @@
 #include "src/engine/util/util_load_save.h"
 #include "src/engine/util/util_draw.h"
 #include "src/engine/global.h"
+#include "nativefiledialog-extended/src/include/nfd.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -53,8 +54,9 @@ Uint32 tile_cell_size;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
-char tileset_file_path[128];
-std::string tileset_file_path_string = "";
+
+nfdchar_t *image_file_path = "";
+nfdfilteritem_t image_file_filter[1] = {{"Image file", "png"}};
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 
@@ -164,8 +166,7 @@ namespace Editor
     TilesetLoad()
     {
         int req_format = STBI_rgb_alpha;
-        tileset_file_path_string = tileset_file_path;
-        unsigned char *tileset_image_data = stbi_load(tileset_file_path_string.c_str(), &tileset_width, &tileset_height,
+        unsigned char *tileset_image_data = stbi_load(image_file_path, &tileset_width, &tileset_height,
                                                       &tileset_channels, req_format);
         if (tileset_image_data == NULL)
         {
@@ -200,10 +201,10 @@ namespace Editor
     void
     LoadTilesetImageResultPopupWindow()
     {
-        ImGui::SetNextWindowSize(window_size_popup);
-        ImGui::SetNextWindowPos(window_center_popup);
         if (ImGui::BeginPopupModal("TilesetLoadError"))
         {
+            ImGui::SetWindowSize(window_size_popup);
+            ImGui::SetWindowPos(window_center_popup);
             ImGui::Text("ERROR: Either FILE does not exist\nor FILEPATH is invalid!");
 
             ImGui::SetCursorPos(ImVec2{80, 50});
@@ -213,62 +214,32 @@ namespace Editor
             }
             ImGui::EndPopup();
         }
-        else if (ImGui::BeginPopupModal("TilesetLoadSuccess"))
-        {
-            ImGui::Text("Image loaded with height %i,\n width %i, channels %i!", tileset_height, tileset_width,
-                        tileset_channels);
-            ImGui::SetCursorPos(ImVec2{80, 50});
-            if (ImGui::Button("Ok", ImVec2(120, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
     }
 
-    //--------------------------------------------------------
-    void
-    LoadTilesetPopupWindow()
+    //-----------------------------------------------------------
+    void 
+    SetImageFilePathFromDialog()
     {
-        ImGui::SetNextWindowSize(window_size_popup);
-        ImGui::SetNextWindowPos(window_center_popup);
-        if (ImGui::BeginPopupModal("TilesetLoad"))
+        // You can initialize nfd either at the start and end of the program or, like here, everytime you want to show the file dialog.
+        NFD_Init();
+        
+        nfdresult_t result = NFD_OpenDialog(&image_file_path, image_file_filter, 1, NULL);
+        if (result == NFD_OKAY) 
         {
-            ImGui::Text("Enter file name");
-            ImGui::Separator();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::InputText("File Name", tileset_file_path, IM_ARRAYSIZE(tileset_file_path));
-            ImGui::PopStyleVar();
-
-            if (ImGui::Button("Load", ImVec2(120, 0)))
-            {
-                bool success = TilesetLoad();
-                if (success)
-                {
-                    ImGui::OpenPopup("TilesetLoadSuccess");
-                }
-                else
-                {
-                    ImGui::OpenPopup("TilesetLoadError");
-                }
-            }
-
-            ImGui::SetItemDefaultFocus();
-            ImGui::SameLine();
-
-            if (ImGui::Button("Cancel", ImVec2(120, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-
-            LoadTilesetImageResultPopupWindow();
-
-            ImGui::EndPopup();
+            // Since we are loading the tileset in a separate button we dont really do anything here.
+        }
+        else if ( result == NFD_CANCEL)
+        {
+            // Not much to do when the user cancels so we just leave it blank to catch the errors.
+        }
+        else 
+        {
+            // Again, another area where what we do is still up in the air.
+            printf("Error: %s", NFD_GetError());
         }
 
+        NFD_Quit();
     }
-
-
     //-----------------------------------------------------------
     void
     TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap)
@@ -315,12 +286,23 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-
+            ImGui::InputText(" ", image_file_path, strlen(image_file_path), ImGuiInputTextFlags_ReadOnly);
+            ImGui::SameLine();
+            if (ImGui::Button("Browse"))
+            {
+                SetImageFilePathFromDialog();
+            }
+            ImGui::SameLine();
             if (ImGui::Button("Load Tileset"))
             {
-                ImGui::OpenPopup("TilesetLoad");
-            }
+                bool success = TilesetLoad();
 
+                if (!success)
+                {
+                    ImGui::OpenPopup("TilesetLoadError");
+                }
+            }
+            ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
             if (imgui_save_notification_timer > 0)
             {
                 imgui_save_notification_timer -= Global::delta_time_ms;
@@ -329,11 +311,11 @@ namespace Editor
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
             ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
+
         }
-
-        LoadTilesetPopupWindow();
-
+        LoadTilesetImageResultPopupWindow();
         ImGui::End();
+        
 
     }
 
