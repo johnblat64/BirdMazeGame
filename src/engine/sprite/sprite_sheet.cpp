@@ -4,6 +4,7 @@
 #include <src/engine/util/util_error_handling.h>
 #include <src/engine/global.h>
 #include <math.h>
+#include "src/engine/tile/tilemap.h"
 
 
 SpriteSheet SpriteSheetCreateFromFile(const char *filename, const char *sprite_sheet_name, int rows, int cols)
@@ -49,7 +50,8 @@ SpriteSheet SpriteSheetCreateFromFile(const char *filename, const char *sprite_s
 
 
 void
-SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_col, float pos_x, float pos_y)
+SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_col, float scale, float tilemap_x,
+             float tilemap_y, float parent_x, float parent_y, float local_sprite_x, float local_sprite_y)
 {
     SDL_Rect src_rect = {
             sprite_sheet_col * (int)sprite_sheet.cell_width(),
@@ -59,10 +61,10 @@ SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_co
     };
 
     SDL_Rect dst_rect = {
-            (int)round(pos_x) - (int)sprite_sheet.cell_width()/2,
-            (int)round(pos_y) - (int)sprite_sheet.cell_height()/2,
-            (int)sprite_sheet.cell_width(),
-            (int)sprite_sheet.cell_height()
+            (int)round(tilemap_x + parent_x + local_sprite_x) - (int)round(sprite_sheet.cell_width() / 2 * scale),
+            (int)round(tilemap_y + parent_y + local_sprite_y) - (int)round(sprite_sheet.cell_height() / 2 * scale),
+            (int)round(sprite_sheet.cell_width() * scale),
+            (int)round(sprite_sheet.cell_height() * scale)
     };
 
 

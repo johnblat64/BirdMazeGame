@@ -4,6 +4,7 @@
 #include <external/SDL2/include/SDL.h>
 #include <vector>
 #include <map>
+#include "src/engine/tile/tilemap.h"
 
 struct SpriteSheet
 {
@@ -24,6 +25,15 @@ struct SpriteSheet
     }
 };
 
+struct AnimatedSprite
+{
+    SpriteSheet sprite_sheet;
+    Uint32 start_frame;
+    Uint32 end_frame;
+    double accumulator;
+    double seconds_per_frame;
+};
+
 
 struct SpriteSheetBitmask
 {
@@ -36,6 +46,7 @@ static std::map<std::string, SpriteSheet> sprite_sheets;
 
 SpriteSheet SpriteSheetCreateFromFile(const char *filename, const char *sprite_sheet_name, int rows, int cols);
 SpriteSheet sprite_sheet_get_by_name(std::string sprite_sheet_name);
-void SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_col, float pos_x, float pos_y);
+void SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_col, float scale, float tilemap_x,
+                  float tilemap_y, float parent_x, float parent_y, float local_sprite_x, float local_sprite_y);
 
 #endif
