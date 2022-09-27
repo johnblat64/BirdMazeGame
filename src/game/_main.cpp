@@ -4,6 +4,8 @@
 #include <src/engine/sprite/sprite_sheet.h>
 #include "src/engine/tile/tilemap.h"
 #include "src/engine/util/util_load_save.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <external/stb/stb_image.h>
 
 
 void
@@ -106,6 +108,7 @@ main()
                           tilemap_position.y,
                           (SDL_Color) {100, 100, 100, 255});
 
+        SpriteRender(player.sprite_sheet, 0, 0, 0, 0);
         SDL_RenderPresent(Global::renderer);
     }
     return 0;
