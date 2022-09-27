@@ -286,7 +286,7 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::InputText(" ", image_file_path, IM_ARRAYSIZE(image_file_path), ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText(" ", image_file_path, strlen(image_file_path), ImGuiInputTextFlags_ReadOnly);
             ImGui::SameLine();
             if (ImGui::Button("Browse"))
             {
