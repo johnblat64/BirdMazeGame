@@ -11,12 +11,11 @@ add_executable(Editor
 set(CMAKE_BUILD_RPATH_USE_ORIGIN  TRUE)
 set_property(
     TARGET Game Editor
-    PROPERTY BUILD_RPATH $ORIGIN/external/SDL2;$ORIGIN/external/flecs
+    PROPERTY BUILD_RPATH $ORIGIN/external/SDL2;$ORIGIN/external/flecs;$ORIGIN/external/nativefiledialog-extended;
 )
 
-
-
 add_subdirectory(external/SDL2)
+add_subdirectory(external/nativefiledialog-extended)
 
 
 include_directories(
@@ -45,4 +44,4 @@ endif()
 
 
 target_link_libraries(Game SDL2::SDL2 SDL2::SDL2main)
-target_link_libraries(Editor SDL2::SDL2 SDL2::SDL2main)
+target_link_libraries(Editor SDL2::SDL2 SDL2::SDL2main nfd)
