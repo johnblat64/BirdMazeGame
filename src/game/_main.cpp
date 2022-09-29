@@ -4,12 +4,12 @@
 #include <src/engine/sprite/sprite_sheet.h>
 #include "src/engine/tile/tilemap.h"
 #include "src/engine/util/util_load_save.h"
+#include <src/engine/util/util_draw.h>
+#include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <external/stb/stb_image.h>
-#include <src/engine/util/util_draw.h>
-#include <math.h>
 
 
 int sign(float x)
@@ -28,7 +28,6 @@ void
 GameSDLSetup()
 {
     SDLErrorHandle(SDL_Init(SDL_INIT_VIDEO));
-    //SDLErrorHandle(SDL_SetError("This is a test!"));
     Global::window = SDL_CreateWindow(
             "Bird Maze Game",
             SDL_WINDOWPOS_CENTERED,
@@ -394,6 +393,7 @@ main()
     double frame_start_seconds = 0.0f;
     double frame_end_seconds = 0.0f;
 
+
     bool quit = false;
     while (!quit)
     {
@@ -454,7 +454,8 @@ main()
         //PlayerRenderDebugCurrentRect(player, tilemap);
 
 
-        float scale = (tilemap.tile_size * 2.0f) / player.animated_sprite.sprite_sheet.cell_width(); // how big should sprite be relative to tile
+        float scale = (tilemap.tile_size * 2.0f) /
+                      player.animated_sprite.sprite_sheet.cell_width(); // how big should sprite be relative to tile
 
         SpriteRender(player.animated_sprite.sprite_sheet, 0, player.animated_sprite.curr_frame, scale,
                      tilemap_position.x, tilemap_position.y, player.local_tilemap_pos_x,
