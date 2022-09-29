@@ -23,6 +23,11 @@ double degrees_to_rads(double degrees)
     return degrees * 3.14f / 180.0f;
 }
 
+int mod(int a, int b) // C++ messes us negative modding with '%' operator, so use our own
+{
+    return (b + (a%b)) % b;
+}
+
 
 void
 GameSDLSetup()
@@ -67,8 +72,11 @@ struct Player
 
     void current_tile(Tilemap tilemap, int &tile_x, int &tile_y)
     {
-        tile_x = (int) local_tilemap_pos_x / tilemap.tile_size;
-        tile_y = (int) local_tilemap_pos_y / tilemap.tile_size;
+        int wrapped_tilemap_pos_x = mod(local_tilemap_pos_x, tilemap.width());
+        int wrapped_tilemap_pos_y = mod(local_tilemap_pos_y, tilemap.height());
+
+        tile_x = (int) wrapped_tilemap_pos_x / tilemap.tile_size;
+        tile_y = (int) wrapped_tilemap_pos_y / tilemap.tile_size;
     }
 
     void tile_above(Tilemap tilemap, int &tile_x, int &tile_y)
@@ -430,10 +438,9 @@ main()
         PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(player, tilemap, keyboard_state);
         PlayerSetVelocityToSnapToAxis(player, tilemap);
         PlayerMove(player);
-        PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
-        PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
-        PlayerTilemapCollisionHandle(player, tilemap);
         PlayerSetPositionTilemapWrap(player, tilemap);
+        PlayerTilemapCollisionHandle(player, tilemap);
+        PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
 
         //
