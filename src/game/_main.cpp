@@ -61,7 +61,7 @@ struct Player
     float vel_x;
     float vel_y;
     float speed;
-    Axis axis;
+    Axis snap_axis; // there is an imaginary x and y-axis running along the tilemap at the centers of each tile. This variable determines what axis the player wants to snap to.
 
 
     void current_tile(Tilemap tilemap, int &tile_x, int &tile_y)
@@ -115,7 +115,7 @@ main()
     player.animated_sprite.end_frame = 11;
     player.vel_x = 0.0f;
     player.vel_y = 0.0f;
-    player.speed = 0.5f;
+    player.speed = 3.0f;
     player.sprite_pos_x = 0.0f;
     player.sprite_pos_y = -20.0f;
 
@@ -167,7 +167,7 @@ main()
         {
             player.vel_y = -player.speed;
             player.vel_x = 0.0f;
-            player.axis = AXIS_Y;
+            player.snap_axis = AXIS_Y;
         }
         else if (keyboard_state[SDL_SCANCODE_DOWN] &&
                 std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_below_y, player_tile_below_x,
@@ -175,7 +175,7 @@ main()
         {
             player.vel_y = player.speed;
             player.vel_x = 0.0f;
-            player.axis = AXIS_Y;
+            player.snap_axis = AXIS_Y;
         }
         else if (keyboard_state[SDL_SCANCODE_LEFT] &&
                 std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_left_y, player_tile_to_left_x,
@@ -184,7 +184,7 @@ main()
             player.vel_x = -player.speed;
             player.vel_y = 0.0f;
             flip = false;
-            player.axis = AXIS_X;
+            player.snap_axis = AXIS_X;
         }
         else if (keyboard_state[SDL_SCANCODE_RIGHT] &&
                 std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_right_y, player_tile_to_right_x,
@@ -193,7 +193,7 @@ main()
             player.vel_x = player.speed;
             player.vel_y = 0.0f;
             flip = true;
-            player.axis = AXIS_X;
+            player.snap_axis = AXIS_X;
         }
 
         //
@@ -208,13 +208,13 @@ main()
 
             if(player.tilemap_pos_x > curr_tile_center_x) // to right of tile center y-axis
             {
-                player.vel_y = -0.2f;
-                player.vel_x = -0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  -player.speed;
+                player.vel_x =  degrees_to_rads(45.0f) *  -player.speed;
             }
             else if(player.tilemap_pos_x < curr_tile_center_x) // to right of tile center y-axis
             {
-                player.vel_y = -0.2f;
-                player.vel_x = 0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  -player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  player.speed;
             }
         }
         if(player.vel_y == player.speed) // moving down
@@ -226,13 +226,13 @@ main()
 
             if(player.tilemap_pos_x > curr_tile_center_x) // to right of tile center y-axis
             {
-                player.vel_y = 0.2f;
-                player.vel_x = -0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  -player.speed;
             }
             else if(player.tilemap_pos_x < curr_tile_center_x) // to right of tile center y-axis
             {
-                player.vel_y = 0.2f;
-                player.vel_x = 0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  player.speed;
             }
         }
         if(player.vel_x == -player.speed) // moving left
@@ -244,13 +244,13 @@ main()
 
             if(player.tilemap_pos_y > curr_tile_center_y) // to bottom of tile center x-axis
             {
-                player.vel_y = -0.2f;
-                player.vel_x = -0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  -player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  -player.speed;
             }
             else if(player.tilemap_pos_y < curr_tile_center_y) // to top of tile center x-axis
             {
-                player.vel_y = 0.2f;
-                player.vel_x = -0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  -player.speed;
             }
         }
         if(player.vel_x == player.speed) // moving right
@@ -262,13 +262,13 @@ main()
 
             if(player.tilemap_pos_y > curr_tile_center_y) // to bottom of tile center x-axis
             {
-                player.vel_y = -0.2f;
-                player.vel_x = 0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  -player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  player.speed;
             }
             else if(player.tilemap_pos_y < curr_tile_center_y) // to top of tile center x-axis
             {
-                player.vel_y = 0.2f;
-                player.vel_x = 0.2f;
+                player.vel_y = degrees_to_rads(45.0f) *  player.speed;
+                player.vel_x = degrees_to_rads(45.0f) *  player.speed;
             }
         }
 
@@ -282,7 +282,7 @@ main()
         // check for alignment
         //
 
-        if(player.vel_x != 0.0f && player.axis == AXIS_Y)
+        if(player.vel_x != 0.0f && player.snap_axis == AXIS_Y)
         {
             int curr_tile_x, curr_tile_y;
             player.current_tile(tilemap, curr_tile_x, curr_tile_y);
@@ -308,7 +308,7 @@ main()
                 }
             }
         }
-        if(player.vel_y != 0.0f && player.axis == AXIS_X)
+        if(player.vel_y != 0.0f && player.snap_axis == AXIS_X)
         {
             int curr_tile_x, curr_tile_y;
             player.current_tile(tilemap, curr_tile_x, curr_tile_y);
@@ -390,8 +390,8 @@ main()
                 (int)tilemap.tile_size
         };
 
-        SDL_SetRenderDrawColor(Global::renderer, 255,0,0,100);
-        SDL_RenderFillRect(Global::renderer, &curr_tile_rect);
+//        SDL_SetRenderDrawColor(Global::renderer, 255,0,0,100);
+//        SDL_RenderFillRect(Global::renderer, &curr_tile_rect);
 
         // animated sprite update
         player.animated_sprite.increment(delta_time_in_seconds);
