@@ -181,4 +181,11 @@ TilemapGridRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color)
                    tilemap.n_rows,
                    tilemap.n_cols,
                    color);
+
+    // this grid is for showing the center axes for the tilemap which is what the player is snapped to
+    color.r *= 0.7f;
+    color.g *= 0.7f;
+    color.b *= 0.7f;
+
+    Util::DrawGrid(Global::renderer, tilemap.tile_size, pos_x + tilemap.tile_size/2, pos_y + tilemap.tile_size/2, tilemap.n_rows - 1, tilemap.n_cols - 1, color);
 }

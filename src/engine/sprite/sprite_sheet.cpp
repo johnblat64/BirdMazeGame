@@ -77,3 +77,16 @@ SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_co
 
     SDL_RenderCopyEx(Global::renderer, sprite_sheet.texture, &src_rect, &dst_rect, 0, NULL, flip_val);
 }
+
+
+AnimatedSprite
+AnimatedSpriteInit(SpriteSheet sprite_sheet, Uint32 start_frame, Uint32 end_frame, float FPS)
+{
+    AnimatedSprite animated_sprite;
+    animated_sprite.sprite_sheet = sprite_sheet;
+    animated_sprite.start_frame = start_frame;
+    animated_sprite.end_frame = end_frame;
+    animated_sprite.FPS = FPS;
+
+    return animated_sprite;
+}

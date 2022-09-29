@@ -32,12 +32,13 @@ struct AnimatedSprite
     Uint32 end_frame;
     Uint32 curr_frame;
     double accumulator;
-    double seconds_per_frame;
+    double FPS;
+    bool flip_horizonatally;
 
     void increment(float delta_time_seconds)
     {
         accumulator += delta_time_seconds;
-        if (accumulator >= seconds_per_frame)
+        if (accumulator >= seconds_per_frame())
         {
             accumulator = 0.0f;
             curr_frame++;
@@ -47,9 +48,17 @@ struct AnimatedSprite
                 curr_frame = start_frame;
             }
         }
+    }
 
+    double seconds_per_frame()
+    {
+        return 1.0f / FPS;
     }
 };
+
+
+AnimatedSprite
+AnimatedSpriteInit(SpriteSheet sprite_sheet, Uint32 start_frame, Uint32 end_frame, float FPS);
 
 
 struct SpriteSheetBitmask
