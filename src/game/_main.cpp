@@ -12,6 +12,7 @@
 #include <external/stb/stb_image.h>
 
 
+//-----------------------------------------------------------------------------------------------
 int sign(float x)
 {
     return x >= 0.0 ? 1 : -1;
@@ -23,12 +24,14 @@ double degrees_to_rads(double degrees)
     return degrees * 3.14f / 180.0f;
 }
 
+
 int mod(int a, int b) // C++ messes us negative modding with '%' operator, so use our own
 {
     return (b + (a%b)) % b;
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 GameSDLSetup()
 {
@@ -51,11 +54,14 @@ GameSDLSetup()
 
 }
 
+
+//-----------------------------------------------------------------------------------------------
 enum Axis
 {
     AXIS_X,
     AXIS_Y
 };
+
 
 struct Player
 {
@@ -105,6 +111,7 @@ struct Player
 };
 
 
+//-----------------------------------------------------------------------------------------------
 // local_sprite_pos  of {0, 0) would be directly positioned over the players own position.
 Player
 PlayerInit(AnimatedSprite animated_sprite, float local_sprite_pos_x, float local_sprite_pos_y, int start_tile_x,
@@ -125,6 +132,7 @@ PlayerInit(AnimatedSprite animated_sprite, float local_sprite_pos_x, float local
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tilemap, const Uint8 *keyboard_state)
 {
@@ -174,6 +182,7 @@ PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tile
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 PlayerSetVelocityToSnapToAxis(Player &player, Tilemap tilemap)
 {
@@ -252,6 +261,7 @@ PlayerSetVelocityToSnapToAxis(Player &player, Tilemap tilemap)
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 PlayerMove(Player &player)
 {
@@ -260,6 +270,7 @@ PlayerMove(Player &player)
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap tilemap)
 {
@@ -319,6 +330,7 @@ PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap ti
 }
 
 
+//-----------------------------------------------------------------------------------------------
 void
 PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
 {
@@ -337,6 +349,8 @@ PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
     }
 }
 
+
+//-----------------------------------------------------------------------------------------------
 void
 PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 {
@@ -359,7 +373,9 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 }
 
 
-void PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
+//-----------------------------------------------------------------------------------------------
+void
+PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
 {
     int player_curr_tile_x, player_curr_tile_y;
     player.current_tile(tilemap, player_curr_tile_x, player_curr_tile_y);
@@ -376,7 +392,9 @@ void PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
 }
 
 
-void PlayerRenderDebugPositionAsCircle(Player &player, float tilemap_position_x, float tilemap_position_y)
+//-----------------------------------------------------------------------------------------------
+void
+PlayerRenderDebugPositionAsCircle(Player &player, float tilemap_position_x, float tilemap_position_y)
 {
     int global_pos_x = tilemap_position_x + player.local_tilemap_pos_x;
     int global_pos_y = tilemap_position_y + player.local_tilemap_pos_y;
@@ -384,6 +402,7 @@ void PlayerRenderDebugPositionAsCircle(Player &player, float tilemap_position_x,
 }
 
 
+//-----------------------------------------------------------------------------------------------
 int
 main()
 {
