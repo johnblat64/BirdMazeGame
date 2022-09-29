@@ -40,11 +40,6 @@ struct RotationDegrees
     float val;
 };
 
-//--------------------------------
-struct AnimatedSprite
-{
-
-};
 
 
 //--------------------------------

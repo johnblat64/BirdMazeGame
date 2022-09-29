@@ -93,7 +93,7 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
 
             for(int col = tilemap->n_cols; col >= 0; col--)
             {
-                int value = stdvector_at_2d(tilemap->is_collision_tiles, row, col, tilemap->n_cols);
+                int value = std_vector_2d_at(tilemap->is_collision_tiles, row, col, tilemap->n_cols);
                 int index = two_dim_to_one_dim_index(row, col, tilemap->n_cols);
                 int shifted_index = index + right_shift_amount;
                 tilemap->is_collision_tiles[shifted_index] = value;
@@ -108,7 +108,7 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
         {
             for(int col = old_n_cols; col < new_n_cols; col++)
             {
-                stdvector_2d_set(
+                std_vector_2d_set(
                         tilemap->is_collision_tiles,
                         row,
                         col,
@@ -154,8 +154,8 @@ TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_
     {
         for (int col = 0; col < tilemap.n_cols; col++)
         {
-            bool is_collidable_tile = (bool) stdvector_at_2d<char>(tilemap.is_collision_tiles, row, col,
-                                                                   tilemap.n_cols);
+            bool is_collidable_tile = (bool) std_vector_2d_at<char>(tilemap.is_collision_tiles, row, col,
+                                                                    tilemap.n_cols);
             if (is_collidable_tile)
             {
                 SDL_FRect collidable_tile_rect = {

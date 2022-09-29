@@ -51,7 +51,8 @@ SpriteSheet SpriteSheetCreateFromFile(const char *filename, const char *sprite_s
 
 void
 SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_col, float scale, float tilemap_x,
-             float tilemap_y, float parent_x, float parent_y, float local_sprite_x, float local_sprite_y)
+             float tilemap_y, float parent_x, float parent_y, float local_sprite_x, float local_sprite_y,
+             bool flip)
 {
     SDL_Rect src_rect = {
             sprite_sheet_col * (int)sprite_sheet.cell_width(),
@@ -67,6 +68,12 @@ SpriteRender(SpriteSheet sprite_sheet, int sprite_sheet_row, int sprite_sheet_co
             (int)round(sprite_sheet.cell_height() * scale)
     };
 
+    SDL_RendererFlip flip_val = SDL_FLIP_NONE;
+    if(flip)
+    {
+        flip_val = SDL_FLIP_HORIZONTAL;
+    }
 
-    SDL_RenderCopy(Global::renderer, sprite_sheet.texture, &src_rect, &dst_rect);
+
+    SDL_RenderCopyEx(Global::renderer, sprite_sheet.texture, &src_rect, &dst_rect, 0, NULL, flip_val);
 }
