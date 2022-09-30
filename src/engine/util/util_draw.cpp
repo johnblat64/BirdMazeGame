@@ -27,8 +27,11 @@ namespace Util
 
     //--------------------------------------------------------
     void
-    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols)
+    DrawGrid(SDL_Renderer *renderer, Uint32 spacing, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
+             SDL_Color color)
     {
+        SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
         Uint32 grid_h = n_rows * spacing;
         Uint32 grid_w = n_cols * spacing;
 
@@ -47,6 +50,36 @@ namespace Util
             float y = start_y + static_cast<float>(row * spacing);
             SDL_RenderDrawLineF(renderer, start_x, y, end_x, y);
 
+        }
+    }
+
+    //--------------------------------------------------------
+    void DrawCircleFill(SDL_Renderer *renderer, Uint32 center_x, Uint32 center_y, Uint32 radius, SDL_Color color)
+    {
+        SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
+        int x = 0;
+        int y = radius;
+        int d = 3 - 2 * radius;
+
+        SDL_RenderDrawLine(renderer, center_x + x , center_y + y, center_x - x , center_y + y  );
+        SDL_RenderDrawLine(renderer, center_x + x , center_y - y, center_x - x , center_y - y );
+        SDL_RenderDrawLine(renderer, center_x + y , center_y + x, center_x - y , center_y + x);
+        SDL_RenderDrawLine(renderer, center_x + y , center_y - x, center_x - y , center_y - x);
+
+        while( y >= x ) {
+            x++;
+            if( d > 0 ) {
+                y--;
+                d = d + 4 * ( x - y ) + 10;
+            }
+            else {
+                d = d + 4 * x + 6;
+            }
+            SDL_RenderDrawLine(renderer, center_x + x , center_y + y, center_x - x , center_y + y);
+            SDL_RenderDrawLine(renderer, center_x + x , center_y - y, center_x - x , center_y - y );
+            SDL_RenderDrawLine(renderer, center_x + y , center_y + x , center_x - y , center_y + x);
+            SDL_RenderDrawLine(renderer, center_x + y , center_y - x, center_x - y , center_y - x );
         }
     }
 }

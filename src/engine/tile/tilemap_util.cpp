@@ -4,6 +4,9 @@
 
 #include "tilemap.h"
 #include <vector>
+#include <src/engine/global.h>
+#include <src/engine/util/util_error_handling.h>
+#include <src/engine/util/util_draw.h>
 
 
 int
@@ -90,7 +93,7 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
 
             for(int col = tilemap->n_cols; col >= 0; col--)
             {
-                int value = stdvector_at_2d(tilemap->is_collision_tiles, row, col, tilemap->n_cols);
+                int value = std_vector_2d_at(tilemap->is_collision_tiles, row, col, tilemap->n_cols);
                 int index = two_dim_to_one_dim_index(row, col, tilemap->n_cols);
                 int shifted_index = index + right_shift_amount;
                 tilemap->is_collision_tiles[shifted_index] = value;
@@ -105,7 +108,7 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
         {
             for(int col = old_n_cols; col < new_n_cols; col++)
             {
-                stdvector_2d_set(
+                std_vector_2d_set(
                         tilemap->is_collision_tiles,
                         row,
                         col,
@@ -139,4 +142,50 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
 
         tilemap->n_cols = new_n_cols;
     }
+}
+
+
+void
+TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color)
+{
+    SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
+    for (int row = 0; row < tilemap.n_rows; row++)
+    {
+        for (int col = 0; col < tilemap.n_cols; col++)
+        {
+            bool is_collidable_tile = (bool) std_vector_2d_at<char>(tilemap.is_collision_tiles, row, col,
+                                                                    tilemap.n_cols);
+            if (is_collidable_tile)
+            {
+                SDL_FRect collidable_tile_rect = {
+                        pos_x + (float) (col * tilemap.tile_size),
+                        pos_y + (float) (row * tilemap.tile_size),
+                        (float) tilemap.tile_size,
+                        (float) tilemap.tile_size};
+
+                SDLErrorHandle(SDL_RenderFillRectF(Global::renderer, &collidable_tile_rect));
+            }
+        }
+    }
+}
+
+
+void
+TilemapGridRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color)
+{
+    Util::DrawGrid(Global::renderer,
+                   tilemap.tile_size,
+                   pos_x,
+                   pos_y,
+                   tilemap.n_rows,
+                   tilemap.n_cols,
+                   color);
+
+    // this grid is for showing the center axes for the tilemap which is what the player is snapped to
+    color.r *= 0.7f;
+    color.g *= 0.7f;
+    color.b *= 0.7f;
+
+    Util::DrawGrid(Global::renderer, tilemap.tile_size, pos_x + tilemap.tile_size/2, pos_y + tilemap.tile_size/2, tilemap.n_rows - 1, tilemap.n_cols - 1, color);
 }

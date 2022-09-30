@@ -26,6 +26,24 @@ struct Tilemap
     Uint32 n_cols;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tilemap, tileset_sprite_sheet_indices, is_collision_tiles, tile_size, n_rows, n_cols)
+
+    Uint32 width()
+    {
+        return tile_size * n_cols;
+    }
+
+    Uint32 height()
+    {
+        return tile_size * n_rows;
+    }
+
+    void center_pt_of_tile(int tile_x, int tile_y, float &center_pt_x, float &center_pt_y)
+    {
+        int tile_start_pos_x = tile_x * tile_size;
+        int tile_start_pos_y = tile_y * tile_size;
+        center_pt_x = tile_start_pos_x + tile_size/2;
+        center_pt_y = tile_start_pos_y + tile_size/2;
+    }
 };
 
 int
@@ -38,10 +56,10 @@ void
 Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_n_cols);
 
 void
-stdvector_2d_set(std::vector<bool> &v, int row, int col, int n_cols, int value);
+std_vector_2d_set(std::vector<bool> &v, int row, int col, int n_cols, int value);
 
 int
-stdvector_at_2d(std::vector<bool> v, int row, int col, int n_cols);
+std_vector_2d_at(std::vector<bool> v, int row, int col, int n_cols);
 
 bool
 Tilemap_get_wall_value(Tilemap tilemap, int row, int col);
@@ -51,17 +69,23 @@ Tilemap_set_collision_tile_value(Tilemap *tilemap, int row, int col, bool is_col
 
 
 template <typename T>void
-stdvector_2d_set(std::vector<T> &v, int row, int col, int n_cols, int value)
+std_vector_2d_set(std::vector<T> &v, int row, int col, int n_cols, int value)
 {
     int index = two_dim_to_one_dim_index(row, col, n_cols);
     v[index] = value;
 }
 
 template <typename T> T
-stdvector_at_2d(std::vector<T> v, int row, int col, int n_cols)
+std_vector_2d_at(std::vector<T> v, int row, int col, int n_cols)
 {
     int index = two_dim_to_one_dim_index(row, col, n_cols);
     return v[index];
 }
+
+void
+TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color);
+
+void
+TilemapGridRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_Color color);
 
 #endif
