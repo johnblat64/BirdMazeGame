@@ -81,7 +81,7 @@ namespace Editor
 
         tileset_window_size_current_frame = {(float) (tilemap.tile_size * tilemap.n_cols),
                                              (float) (tilemap.tile_size * tilemap.n_rows)};
-        tileset_window_size_previous_frame = autotiler_window_size_current_frame;
+        tileset_window_size_previous_frame = tileset_window_size_current_frame;
 
         imgui_tilemap_n_rows = tilemap.n_rows;
         imgui_tilemap_n_cols = tilemap.n_cols;
@@ -283,6 +283,12 @@ namespace Editor
                 imgui_save_notification_timer = imgui_save_notification_duration_ms;
             }
 
+            if (imgui_save_notification_timer > 0)
+            {
+                imgui_save_notification_timer -= Global::delta_time_ms;
+                ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
+            }
+
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
@@ -303,11 +309,7 @@ namespace Editor
                 }
             }
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
-            if (imgui_save_notification_timer > 0)
-            {
-                imgui_save_notification_timer -= Global::delta_time_ms;
-                ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
-            }
+            
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
             ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
@@ -442,11 +444,11 @@ namespace Editor
             TilemapCollisionTileRectsRender(tilemap,
                                             tilemap_position.x,
                                             tilemap_position.y,
-                                            (SDL_Color) {255, 0, 0, 255});
+                                            SDL_Color{255, 0, 0, 255});
             TilemapGridRender(tilemap,
                               tilemap_position.x,
                               tilemap_position.y,
-                              (SDL_Color) {100, 100, 100, 255});
+                              SDL_Color{100, 100, 100, 255});
 
         }
         ImGui::End();

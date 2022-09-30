@@ -57,6 +57,7 @@ Tilemap_load_from_file(const char *filename, Tilemap &tilemap)
 
     from_json(tilemap_json, tilemap);
 
-    printf("Loaded TileMap");
+    printf("Loaded TileMap\n");
+    SDL_RWclose(read_context);
     return LOAD_SUCCESS;
 }

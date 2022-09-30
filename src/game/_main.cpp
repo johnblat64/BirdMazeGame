@@ -330,22 +330,65 @@ PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap ti
 }
 
 
+
+// WIP -Right now the function is sorta doing too much fluff. i.e. were getting tile info about our neighbor twice. once in our PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed
+// and another time here. Same with the current tile center stuff, its being done twice. 
+// Im not sure whether this is ok or not, since I don't want to touch already existing movement code and change the functionality defined by it.
+// Likewise Im not the biggest fan of the way I'm keeping the player from moving beyond the center of the tile with an extra position check but whatever I can go over 
+// other possible solutions later.
 //-----------------------------------------------------------------------------------------------
 void
 PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
 {
-    int player_curr_tile_x, player_curr_tile_y;
-    player.current_tile(tilemap, player_curr_tile_x, player_curr_tile_y);
+    int player_tile_above_x, player_tile_above_y;
+    int player_tile_below_x, player_tile_below_y;
+    int player_tile_to_left_x, player_tile_to_left_y;
+    int player_tile_to_right_x, player_tile_to_right_y;
+    player.tile_above(tilemap, player_tile_above_x, player_tile_above_y);
+    player.tile_below(tilemap, player_tile_below_x, player_tile_below_y);
+    player.tile_to_left(tilemap, player_tile_to_left_x, player_tile_to_left_y);
+    player.tile_to_right(tilemap, player_tile_to_right_x, player_tile_to_right_y);
 
-    if (std_vector_2d_at<char>(tilemap.is_collision_tiles, player_curr_tile_y, player_curr_tile_x,
-                               tilemap.n_cols) == true)
+    int curr_tile_x, curr_tile_y;
+    player.current_tile(tilemap, curr_tile_x, curr_tile_y);
+    float curr_tile_center_x, curr_tile_center_y;
+    tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
+
+    float vel_x = -player.vel_x;
+    float vel_y = -player.vel_y;
+
+    if (player.vel_y == -player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_above_y, player_tile_above_x,
+                                                                tilemap.n_cols) == true &&
+        player.local_tilemap_pos_y < curr_tile_center_y) // moving up
     {
-        float vel_x = -player.vel_x;
-        float vel_y = -player.vel_y;
-        player.local_tilemap_pos_x += vel_x;
+
+        player.vel_y = vel_y;
         player.local_tilemap_pos_y += vel_y;
-        player.vel_x = 0.0f;
         player.vel_y = 0.0f;
+    }
+    if (player.vel_y == player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_below_y, player_tile_below_x,
+                                                               tilemap.n_cols) == true &&
+        player.local_tilemap_pos_y > curr_tile_center_y) // moving down
+    {
+        player.vel_y = vel_y;
+        player.local_tilemap_pos_y += vel_y;
+        player.vel_y = 0.0f;
+    }
+    if (player.vel_x == -player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_left_y, player_tile_to_left_x,
+                                                                tilemap.n_cols) == true &&
+        player.local_tilemap_pos_x < curr_tile_center_x) // moving left
+    {
+        player.vel_x = vel_x;
+        player.local_tilemap_pos_y += vel_x;
+        player.vel_x = 0.0f;
+    }
+    if (player.vel_x == player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_right_y, player_tile_to_right_x,
+                                                               tilemap.n_cols) == true &&
+        player.local_tilemap_pos_x > curr_tile_center_x) // moving right
+    {
+        player.vel_x = vel_x;
+        player.local_tilemap_pos_y += vel_x;
+        player.vel_x = 0.0f;
     }
 }
 
@@ -398,13 +441,12 @@ PlayerRenderDebugPositionAsCircle(Player &player, float tilemap_position_x, floa
 {
     int global_pos_x = tilemap_position_x + player.local_tilemap_pos_x;
     int global_pos_y = tilemap_position_y + player.local_tilemap_pos_y;
-    Util::DrawCircleFill(Global::renderer, global_pos_x, global_pos_y, 2, (SDL_Color) {255, 255, 255, 255});
+    Util::DrawCircleFill(Global::renderer, global_pos_x, global_pos_y, 2, SDL_Color{255, 255, 255, 255});
 }
 
 
 //-----------------------------------------------------------------------------------------------
-int
-main()
+int main(int argc, char *argv[])
 {
     GameSDLSetup();
     Tilemap tilemap;
@@ -412,9 +454,9 @@ main()
     LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
 
     //player setup
-    SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("assets/robert-anim.png", "player", 1, 12);
+    SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("../src/assets/robert-anim.png", "player", 1, 12);
     AnimatedSprite player_animated_sprite = AnimatedSpriteInit(player_sprite_sheet, 0, 11, 12);
-    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 10, 10, 3.0f, tilemap);
+    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 1, 1, 3.0f, tilemap);
 
     double delta_time_in_seconds;
     double frame_start_seconds = 0.0f;
@@ -459,6 +501,8 @@ main()
         PlayerMove(player);
         PlayerSetPositionTilemapWrap(player, tilemap);
         PlayerTilemapCollisionHandle(player, tilemap);
+        
+        
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
 
@@ -471,11 +515,11 @@ main()
         TilemapCollisionTileRectsRender(tilemap,
                                         tilemap_position.x,
                                         tilemap_position.y,
-                                        (SDL_Color) {0, 100, 0, 255});
+                                        SDL_Color{0, 100, 0, 255});
         TilemapGridRender(tilemap,
                           tilemap_position.x,
                           tilemap_position.y,
-                          (SDL_Color) {100, 100, 100, 255});
+                          SDL_Color{100, 100, 100, 255});
 
         //PlayerRenderDebugCurrentRect(player, tilemap);
 
