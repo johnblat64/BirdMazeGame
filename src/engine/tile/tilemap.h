@@ -6,7 +6,7 @@
 #include <string>
 #include "../sprite/sprite_sheet.h"
 #include <external/json/single_include/nlohmann/json.hpp>
-
+#include <src/engine/util/util_misc.h>
 
 const int TILE_MAP_NO_SPRITE = -1;
 
@@ -15,6 +15,22 @@ const int TILE_MAP_NO_SPRITE = -1;
 
 #define MAX_ROWS_ALLOWED 100
 #define MAX_COLS_ALLOWED 100
+
+
+struct TileIndex
+{
+    union
+    {
+        struct
+        {
+            int row, col;
+        };
+        struct
+        {
+            int y, x;
+        };
+    };
+};
 
 
 struct Tilemap
@@ -37,12 +53,16 @@ struct Tilemap
         return tile_size * n_rows;
     }
 
-    void center_pt_of_tile(int tile_x, int tile_y, float &center_pt_x, float &center_pt_y)
+    v2d center_pos_of_tile(int tile_row, int tile_col)
     {
-        int tile_start_pos_x = tile_x * tile_size;
-        int tile_start_pos_y = tile_y * tile_size;
-        center_pt_x = tile_start_pos_x + tile_size/2;
-        center_pt_y = tile_start_pos_y + tile_size/2;
+        int tile_start_pos_x = tile_col * tile_size;
+        int tile_start_pos_y = tile_row * tile_size;
+
+        v2d center_pt;
+        center_pt.x = tile_start_pos_x + tile_size/2;
+        center_pt.y = tile_start_pos_y + tile_size/2;
+
+        return center_pt;
     }
 };
 
@@ -62,7 +82,7 @@ int
 std_vector_2d_at(std::vector<bool> v, int row, int col, int n_cols);
 
 bool
-Tilemap_get_wall_value(Tilemap tilemap, int row, int col);
+TilemapIsCollisionTileAt(Tilemap tilemap, int row, int col);
 
 void
 Tilemap_set_collision_tile_value(Tilemap *tilemap, int row, int col, bool is_collision_tile);

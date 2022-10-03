@@ -66,49 +66,95 @@ enum Axis
 struct Player
 {
     AnimatedSprite animated_sprite;
-    float sprite_pos_x;
-    float sprite_pos_y; // local to player
-    float local_tilemap_pos_x;
-    float local_tilemap_pos_y; // local to tilemap
-    float vel_x;
-    float vel_y;
+    v2d sprite_pos;
+    v2d local_tilemap_pos;
+    v2d vel;
     float speed;
     Axis snap_axis; // there is an imaginary x and y-axis running along the tilemap at the centers of each tile. This variable determines what axis the player wants to snap to.
 
 
-    void current_tile(Tilemap tilemap, int &tile_x, int &tile_y)
+    TileIndex
+    current_tile(Tilemap tilemap)
     {
-        int wrapped_tilemap_pos_x = mod(local_tilemap_pos_x, tilemap.width());
-        int wrapped_tilemap_pos_y = mod(local_tilemap_pos_y, tilemap.height());
+        int wrapped_tilemap_pos_x = mod(local_tilemap_pos.x, tilemap.width());
+        int wrapped_tilemap_pos_y = mod(local_tilemap_pos.y, tilemap.height());
 
-        tile_x = (int) wrapped_tilemap_pos_x / tilemap.tile_size;
-        tile_y = (int) wrapped_tilemap_pos_y / tilemap.tile_size;
+        TileIndex ti;
+        ti.col = (int) wrapped_tilemap_pos_x / tilemap.tile_size;
+        ti.row = (int) wrapped_tilemap_pos_y / tilemap.tile_size;
+
+        return ti;
     }
 
-    void tile_above(Tilemap tilemap, int &tile_x, int &tile_y)
+    TileIndex
+    tile_above(Tilemap tilemap)
     {
-        current_tile(tilemap, tile_x, tile_y);
-        tile_y--;
+        TileIndex ti = current_tile(tilemap);
+        ti.row--;
+        ti.row = mod(ti.row, tilemap.n_rows);
+
+        return ti;
+
     }
 
-    void tile_below(Tilemap tilemap, int &tile_x, int &tile_y)
+    TileIndex
+    tile_below(Tilemap tilemap)
     {
-        current_tile(tilemap, tile_x, tile_y);
-        tile_y++;
+        TileIndex ti = current_tile(tilemap);
+        ti.row++;
+        ti.row = mod(ti.row, tilemap.n_rows);
+
+        return ti;
+
     }
 
-    void tile_to_left(Tilemap tilemap, int &tile_x, int &tile_y)
+    TileIndex
+    tile_to_left(Tilemap tilemap)
     {
-        current_tile(tilemap, tile_x, tile_y);
-        tile_x--;
+        TileIndex ti = current_tile(tilemap);
+        ti.col--;
+
+        ti.col = mod(ti.col, tilemap.n_cols);
+
+        return ti;
+
     }
 
-    void tile_to_right(Tilemap tilemap, int &tile_x, int &tile_y)
+    TileIndex
+    tile_to_right(Tilemap tilemap)
     {
-        current_tile(tilemap, tile_x, tile_y);
-        tile_x++;
+        TileIndex ti = current_tile(tilemap);
+        ti.col++;
+
+        ti.col = mod(ti.col, tilemap.n_cols);
+
+        return ti;
+
     }
 };
+
+
+//-----------------------------------------------
+bool VelocityIsUp(v2d vel)
+{
+    return vel.y < 0.0f;
+}
+
+bool VelocityIsDown(v2d vel)
+{
+    return vel.y > 0.0f;
+}
+
+bool VelocityIsLeft(v2d vel)
+{
+    return vel.x < 0.0f;
+}
+
+bool VelocityIsRight(v2d vel)
+{
+    return vel.x > 0.0f;
+}
+
 
 
 //-----------------------------------------------------------------------------------------------
@@ -119,12 +165,11 @@ PlayerInit(AnimatedSprite animated_sprite, float local_sprite_pos_x, float local
 {
     Player player;
     player.animated_sprite = animated_sprite;
-    player.sprite_pos_x = local_sprite_pos_x;
-    player.sprite_pos_y = local_sprite_pos_y;
-    tilemap_inside_of.center_pt_of_tile(start_tile_x, start_tile_y, player.local_tilemap_pos_x,
-                                        player.local_tilemap_pos_y);
-    player.vel_x = 0.0f;
-    player.vel_y = 0.0f;
+    player.sprite_pos.x = local_sprite_pos_x;
+    player.sprite_pos.y = local_sprite_pos_y;
+    player.local_tilemap_pos = tilemap_inside_of.center_pos_of_tile(start_tile_y, start_tile_x);
+    player.vel.x = 0.0f;
+    player.vel.y = 0.0f;
     player.speed = speed;
     player.snap_axis = AXIS_X;
 
@@ -136,46 +181,39 @@ PlayerInit(AnimatedSprite animated_sprite, float local_sprite_pos_x, float local
 void
 PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tilemap, const Uint8 *keyboard_state)
 {
-    int player_tile_above_x, player_tile_above_y;
-    int player_tile_below_x, player_tile_below_y;
-    int player_tile_to_left_x, player_tile_to_left_y;
-    int player_tile_to_right_x, player_tile_to_right_y;
-    player.tile_above(tilemap, player_tile_above_x, player_tile_above_y);
-    player.tile_below(tilemap, player_tile_below_x, player_tile_below_y);
-    player.tile_to_left(tilemap, player_tile_to_left_x, player_tile_to_left_y);
-    player.tile_to_right(tilemap, player_tile_to_right_x, player_tile_to_right_y);
+    TileIndex tile_above_index = player.tile_above(tilemap);
+    TileIndex tile_below_index = player.tile_below(tilemap);
+    TileIndex tile_to_left_index = player.tile_to_left(tilemap);
+    TileIndex tile_to_right_index = player.tile_to_right(tilemap);
 
-    if (keyboard_state[SDL_SCANCODE_UP] &&
-        std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_above_y, player_tile_above_x,
-                               tilemap.n_cols) == false)
+    if (keyboard_state[SDL_SCANCODE_UP]
+    && !TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col))
     {
-        player.vel_y = -player.speed;
-        player.vel_x = 0.0f;
+        player.vel.y = -player.speed;
+        player.vel.x = 0.0f;
         player.snap_axis = AXIS_Y;
     }
-    else if (keyboard_state[SDL_SCANCODE_DOWN] &&
-             std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_below_y, player_tile_below_x,
-                                    tilemap.n_cols) == false)
+    else if (keyboard_state[SDL_SCANCODE_DOWN]
+    && !TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col))
     {
-        player.vel_y = player.speed;
-        player.vel_x = 0.0f;
+        player.vel.y = player.speed;
+        player.vel.x = 0.0f;
         player.snap_axis = AXIS_Y;
+
     }
-    else if (keyboard_state[SDL_SCANCODE_LEFT] &&
-             std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_left_y, player_tile_to_left_x,
-                                    tilemap.n_cols) == false)
+    else if (keyboard_state[SDL_SCANCODE_LEFT]
+    && !TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col))
     {
-        player.vel_x = -player.speed;
-        player.vel_y = 0.0f;
+        player.vel.x = -player.speed;
+        player.vel.y = 0.0f;
         player.animated_sprite.flip_horizonatally = false;
         player.snap_axis = AXIS_X;
     }
-    else if (keyboard_state[SDL_SCANCODE_RIGHT] &&
-             std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_right_y, player_tile_to_right_x,
-                                    tilemap.n_cols) == false)
+    else if (keyboard_state[SDL_SCANCODE_RIGHT]
+    && !TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col))
     {
-        player.vel_x = player.speed;
-        player.vel_y = 0.0f;
+        player.vel.x = player.speed;
+        player.vel.y = 0.0f;
         player.animated_sprite.flip_horizonatally = true;
         player.snap_axis = AXIS_X;
     }
@@ -186,77 +224,33 @@ PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tile
 void
 PlayerSetVelocityToSnapToAxis(Player &player, Tilemap tilemap)
 {
-    if (player.vel_y == -player.speed) // moving up
-    {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
+    TileIndex current_tile = player.current_tile(tilemap);
+    v2d curr_tile_center_pos = tilemap.center_pos_of_tile(current_tile.row, current_tile.col);
 
-        if (player.local_tilemap_pos_x > curr_tile_center_x) // to right of tile center y-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * -player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * -player.speed;
-        }
-        else if (player.local_tilemap_pos_x < curr_tile_center_x) // to right of tile center y-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * -player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * player.speed;
-        }
+    if (player.local_tilemap_pos.x > curr_tile_center_pos.x
+    && player.snap_axis == AXIS_Y)
+    {
+        player.vel.y = degrees_to_rads(45.0f) * player.speed * sign(player.vel.y);
+        player.vel.x = degrees_to_rads(45.0f) * -player.speed;
     }
-    if (player.vel_y == player.speed) // moving down
+    else if (player.local_tilemap_pos.x < curr_tile_center_pos.x
+    && player.snap_axis == AXIS_Y)
     {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
-
-        if (player.local_tilemap_pos_x > curr_tile_center_x) // to right of tile center y-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * -player.speed;
-        }
-        else if (player.local_tilemap_pos_x < curr_tile_center_x) // to right of tile center y-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * player.speed;
-        }
+        player.vel.y = degrees_to_rads(45.0f) * player.speed * sign(player.vel.y);
+        player.vel.x = degrees_to_rads(45.0f) * player.speed;
     }
-    if (player.vel_x == -player.speed) // moving left
-    {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
 
-        if (player.local_tilemap_pos_y > curr_tile_center_y) // to bottom of tile center x-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * -player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * -player.speed;
-        }
-        else if (player.local_tilemap_pos_y < curr_tile_center_y) // to top of tile center x-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * -player.speed;
-        }
+    if (player.local_tilemap_pos.y > curr_tile_center_pos.y
+    && player.snap_axis == AXIS_X)
+    {
+        player.vel.y = degrees_to_rads(45.0f) * -player.speed;
+        player.vel.x = degrees_to_rads(45.0f) * player.speed * sign(player.vel.x);
     }
-    if (player.vel_x == player.speed) // moving right
+    else if (player.local_tilemap_pos.y < curr_tile_center_pos.y
+    && player.snap_axis == AXIS_X)
     {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
-
-        if (player.local_tilemap_pos_y > curr_tile_center_y) // to bottom of tile center x-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * -player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * player.speed;
-        }
-        else if (player.local_tilemap_pos_y < curr_tile_center_y) // to top of tile center x-axis
-        {
-            player.vel_y = degrees_to_rads(45.0f) * player.speed;
-            player.vel_x = degrees_to_rads(45.0f) * player.speed;
-        }
+        player.vel.y = degrees_to_rads(45.0f) * player.speed;
+        player.vel.x = degrees_to_rads(45.0f) * player.speed * sign(player.vel.x);
     }
 }
 
@@ -265,8 +259,8 @@ PlayerSetVelocityToSnapToAxis(Player &player, Tilemap tilemap)
 void
 PlayerMove(Player &player)
 {
-    player.local_tilemap_pos_x += player.vel_x;
-    player.local_tilemap_pos_y += player.vel_y;
+    player.local_tilemap_pos.x += player.vel.x;
+    player.local_tilemap_pos.y += player.vel.y;
 }
 
 
@@ -274,121 +268,84 @@ PlayerMove(Player &player)
 void
 PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap tilemap)
 {
-    if (player.vel_x != 0.0f &&
-        player.snap_axis == AXIS_Y) // this means that the player is attempting to snap onto an axis
-    {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
+    TileIndex curr_tile = player.current_tile(tilemap);
+    v2d curr_tile_center_pos = tilemap.center_pos_of_tile(curr_tile.row, curr_tile.col);
 
-        if (player.vel_x > 0.0f)
-        {
-            if (player.local_tilemap_pos_x > curr_tile_center_x)
-            {
-                player.local_tilemap_pos_x = curr_tile_center_x;
-                player.vel_x = 0.0f;
-                player.vel_y = sign(player.vel_y) * player.speed;
-            }
-        }
-        else
-        {
-            if (player.local_tilemap_pos_x < curr_tile_center_x)
-            {
-                player.local_tilemap_pos_x = curr_tile_center_x;
-                player.vel_x = 0.0f;
-                player.vel_y = sign(player.vel_y) * player.speed;
-            }
-        }
-    }
-    if (player.vel_y != 0.0f && player.snap_axis == AXIS_X)
+    if(player.snap_axis == AXIS_Y
+    && VelocityIsRight(player.vel)
+    && player.local_tilemap_pos.x > curr_tile_center_pos.x)
     {
-        int curr_tile_x, curr_tile_y;
-        player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-        float curr_tile_center_x, curr_tile_center_y;
-        tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
-
-        if (player.vel_y > 0.0f)
-        {
-            if (player.local_tilemap_pos_y > curr_tile_center_y)
-            {
-                player.local_tilemap_pos_y = curr_tile_center_y;
-                player.vel_y = 0.0f;
-                player.vel_x = sign(player.vel_x) * player.speed;
-            }
-        }
-        else
-        {
-            if (player.local_tilemap_pos_y < curr_tile_center_y)
-            {
-                player.local_tilemap_pos_y = curr_tile_center_y;
-                player.vel_y = 0.0f;
-                player.vel_x = sign(player.vel_x) * player.speed;
-            }
-        }
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
+        player.vel.y = sign(player.vel.y) * player.speed;
     }
+    else if(player.snap_axis == AXIS_Y
+    && VelocityIsLeft(player.vel)
+    && player.local_tilemap_pos.x < curr_tile_center_pos.x)
+    {
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
+        player.vel.y = sign(player.vel.y) * player.speed;
+    }
+    else if(player.snap_axis == AXIS_X
+    && VelocityIsUp(player.vel)
+    && player.local_tilemap_pos.y < curr_tile_center_pos.y)
+    {
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
+        player.vel.x = sign(player.vel.x) * player.speed;
+    }
+    else if(player.snap_axis == AXIS_X
+    && VelocityIsDown(player.vel)
+    && player.local_tilemap_pos.y > curr_tile_center_pos.y)
+    {
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
+        player.vel.x = sign(player.vel.x) * player.speed;
+    }
+
 }
 
 
-
-// WIP -Right now the function is sorta doing too much fluff. i.e. were getting tile info about our neighbor twice. once in our PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed
-// and another time here. Same with the current tile center stuff, its being done twice. 
-// Im not sure whether this is ok or not, since I don't want to touch already existing movement code and change the functionality defined by it.
-// Likewise Im not the biggest fan of the way I'm keeping the player from moving beyond the center of the tile with an extra position check but whatever I can go over 
-// other possible solutions later.
 //-----------------------------------------------------------------------------------------------
 void
 PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
 {
-    int player_tile_above_x, player_tile_above_y;
-    int player_tile_below_x, player_tile_below_y;
-    int player_tile_to_left_x, player_tile_to_left_y;
-    int player_tile_to_right_x, player_tile_to_right_y;
-    player.tile_above(tilemap, player_tile_above_x, player_tile_above_y);
-    player.tile_below(tilemap, player_tile_below_x, player_tile_below_y);
-    player.tile_to_left(tilemap, player_tile_to_left_x, player_tile_to_left_y);
-    player.tile_to_right(tilemap, player_tile_to_right_x, player_tile_to_right_y);
+    TileIndex tile_curr_index = player.current_tile(tilemap);
+    TileIndex tile_above_index = player.tile_above(tilemap);
+    TileIndex tile_below_index = player.tile_below(tilemap);
+    TileIndex tile_to_left_index = player.tile_to_left(tilemap);
+    TileIndex tile_to_right_index = player.tile_to_right(tilemap);
 
-    int curr_tile_x, curr_tile_y;
-    player.current_tile(tilemap, curr_tile_x, curr_tile_y);
-    float curr_tile_center_x, curr_tile_center_y;
-    tilemap.center_pt_of_tile(curr_tile_x, curr_tile_y, curr_tile_center_x, curr_tile_center_y);
+    v2d curr_tile_center_pos = tilemap.center_pos_of_tile(tile_curr_index.row, tile_curr_index.col);
 
-    float vel_x = -player.vel_x;
-    float vel_y = -player.vel_y;
-
-    if (player.vel_y == -player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_above_y, player_tile_above_x,
-                                                                tilemap.n_cols) == true &&
-        player.local_tilemap_pos_y < curr_tile_center_y) // moving up
+    if (VelocityIsUp(player.vel)
+    && TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col)
+    && player.local_tilemap_pos.y < curr_tile_center_pos.y) // moving up
     {
-
-        player.vel_y = vel_y;
-        player.local_tilemap_pos_y += vel_y;
-        player.vel_y = 0.0f;
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
     }
-    if (player.vel_y == player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_below_y, player_tile_below_x,
-                                                               tilemap.n_cols) == true &&
-        player.local_tilemap_pos_y > curr_tile_center_y) // moving down
+    if (VelocityIsDown(player.vel)
+    && TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col)
+    && player.local_tilemap_pos.y > curr_tile_center_pos.y) // moving down
     {
-        player.vel_y = vel_y;
-        player.local_tilemap_pos_y += vel_y;
-        player.vel_y = 0.0f;
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
     }
-    if (player.vel_x == -player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_left_y, player_tile_to_left_x,
-                                                                tilemap.n_cols) == true &&
-        player.local_tilemap_pos_x < curr_tile_center_x) // moving left
+    if (VelocityIsLeft(player.vel)
+    && TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col)
+    && player.local_tilemap_pos.x < curr_tile_center_pos.x) // moving left
     {
-        player.vel_x = vel_x;
-        player.local_tilemap_pos_y += vel_x;
-        player.vel_x = 0.0f;
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
     }
-    if (player.vel_x == player.speed && std_vector_2d_at<char>(tilemap.is_collision_tiles, player_tile_to_right_y, player_tile_to_right_x,
-                                                               tilemap.n_cols) == true &&
-        player.local_tilemap_pos_x > curr_tile_center_x) // moving right
+    if (VelocityIsRight(player.vel)
+    && TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col)
+    && player.local_tilemap_pos.x > curr_tile_center_pos.x) // moving right
     {
-        player.vel_x = vel_x;
-        player.local_tilemap_pos_y += vel_x;
-        player.vel_x = 0.0f;
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
     }
 }
 
@@ -397,21 +354,21 @@ PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
 void
 PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 {
-    if (player.local_tilemap_pos_x < 0.0f)
+    if (player.local_tilemap_pos.x < 0.0f)
     {
-        player.local_tilemap_pos_x = tilemap.width();
+        player.local_tilemap_pos.x = tilemap.width();
     }
-    else if (player.local_tilemap_pos_x > tilemap.width())
+    else if (player.local_tilemap_pos.x > tilemap.width())
     {
-        player.local_tilemap_pos_x = 0.0f;
+        player.local_tilemap_pos.x = 0.0f;
     }
-    if (player.local_tilemap_pos_y < 0.0f)
+    if (player.local_tilemap_pos.y < 0.0f)
     {
-        player.local_tilemap_pos_y = tilemap.height();
+        player.local_tilemap_pos.y = tilemap.height();
     }
-    else if (player.local_tilemap_pos_y > tilemap.height())
+    else if (player.local_tilemap_pos.y > tilemap.height())
     {
-        player.local_tilemap_pos_y = 0.0f;
+        player.local_tilemap_pos.y = 0.0f;
     }
 }
 
@@ -420,12 +377,11 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 void
 PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
 {
-    int player_curr_tile_x, player_curr_tile_y;
-    player.current_tile(tilemap, player_curr_tile_x, player_curr_tile_y);
+    TileIndex player_curr_tile_index = player.current_tile(tilemap);
 
     SDL_Rect curr_tile_rect = {
-            player_curr_tile_x * (int) tilemap.tile_size,
-            player_curr_tile_y * (int) tilemap.tile_size,
+            player_curr_tile_index.col * (int) tilemap.tile_size,
+            player_curr_tile_index.row * (int) tilemap.tile_size,
             (int) tilemap.tile_size,
             (int) tilemap.tile_size
     };
@@ -439,8 +395,8 @@ PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
 void
 PlayerRenderDebugPositionAsCircle(Player &player, float tilemap_position_x, float tilemap_position_y)
 {
-    int global_pos_x = tilemap_position_x + player.local_tilemap_pos_x;
-    int global_pos_y = tilemap_position_y + player.local_tilemap_pos_y;
+    int global_pos_x = tilemap_position_x + player.local_tilemap_pos.x;
+    int global_pos_y = tilemap_position_y + player.local_tilemap_pos.y;
     Util::DrawCircleFill(Global::renderer, global_pos_x, global_pos_y, 2, SDL_Color{255, 255, 255, 255});
 }
 
@@ -454,9 +410,9 @@ int main(int argc, char *argv[])
     LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
 
     //player setup
-    SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("../src/assets/robert-anim.png", "player", 1, 12);
+    SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("assets/robert-anim.png", "player", 1, 12);
     AnimatedSprite player_animated_sprite = AnimatedSpriteInit(player_sprite_sheet, 0, 11, 12);
-    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 1, 1, 3.0f, tilemap);
+    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 10, 10, 1.0f, tilemap);
 
     double delta_time_in_seconds;
     double frame_start_seconds = 0.0f;
@@ -492,6 +448,10 @@ int main(int argc, char *argv[])
         {
             quit = true;
         }
+        if(keyboard_state[SDL_SCANCODE_D])
+        {
+            DEBUG_BREAK;
+        }
 
         //
         // GAMEPLAY
@@ -501,8 +461,6 @@ int main(int argc, char *argv[])
         PlayerMove(player);
         PlayerSetPositionTilemapWrap(player, tilemap);
         PlayerTilemapCollisionHandle(player, tilemap);
-        
-        
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
 
@@ -528,8 +486,8 @@ int main(int argc, char *argv[])
                       player.animated_sprite.sprite_sheet.cell_width(); // how big should sprite be relative to tile
 
         SpriteRender(player.animated_sprite.sprite_sheet, 0, player.animated_sprite.curr_frame, scale,
-                     tilemap_position.x, tilemap_position.y, player.local_tilemap_pos_x,
-                     player.local_tilemap_pos_y, player.sprite_pos_x, player.sprite_pos_y,
+                     tilemap_position.x, tilemap_position.y, player.local_tilemap_pos.x,
+                     player.local_tilemap_pos.y, player.sprite_pos.x, player.sprite_pos.y,
                      player.animated_sprite.flip_horizonatally);
 
         PlayerRenderDebugPositionAsCircle(player, tilemap_position.x, tilemap_position.y);

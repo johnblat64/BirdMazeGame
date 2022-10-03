@@ -1,12 +1,8 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <src/engine/util/util_misc.h>
 
-//--------------------------------
-struct v2d
-{
-    float x, y;
-};
 
 //--------------------------------
 struct WorldPosition  
@@ -22,11 +18,7 @@ struct WorldPosition
 };
     
 
-//--------------------------------
-struct Velocity
-{
-    v2d val;
-};
+
 
 //--------------------------------
 struct CollisionRect 
@@ -51,13 +43,3 @@ typedef enum ButtonState
     BUTTON_STATE_JUST_RELEASED,
 } ButtonState;
 
-struct MouseState
-{
-    v2d window_mouse_pos;
-    v2d logical_mouse_pos; // based on render scale
-    ButtonState left_mouse_btn_state; 
-    ButtonState right_mouse_btn_state; 
-    v2d scroll_movement;
-};
-
-//--------------------------------
