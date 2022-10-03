@@ -134,6 +134,7 @@ struct Player
 };
 
 
+//-----------------------------------------------
 bool VelocityIsUp(v2d vel)
 {
     return vel.y < 0.0f;
