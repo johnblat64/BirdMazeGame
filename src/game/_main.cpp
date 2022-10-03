@@ -267,55 +267,42 @@ PlayerMove(Player &player)
 void
 PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap tilemap)
 {
-    if (player.vel.x != 0.0f &&
-        player.snap_axis == AXIS_Y) // this means that the player is attempting to snap onto an axis
-    {
-        TileIndex curr_tile = player.current_tile(tilemap);
-        v2d curr_tile_center_pos = tilemap.center_pos_of_tile(curr_tile.row, curr_tile.col);
+    TileIndex curr_tile = player.current_tile(tilemap);
+    v2d curr_tile_center_pos = tilemap.center_pos_of_tile(curr_tile.row, curr_tile.col);
 
-        if (player.vel.x > 0.0f)
-        {
-            if (player.local_tilemap_pos.x > curr_tile_center_pos.x)
-            {
-                player.local_tilemap_pos.x = curr_tile_center_pos.x;
-                player.vel.x = 0.0f;
-                player.vel.y = sign(player.vel.y) * player.speed;
-            }
-        }
-        else
-        {
-            if (player.local_tilemap_pos.x < curr_tile_center_pos.x)
-            {
-                player.local_tilemap_pos.x = curr_tile_center_pos.x;
-                player.vel.x = 0.0f;
-                player.vel.y = sign(player.vel.y) * player.speed;
-            }
-        }
-    }
-    if (player.vel.y != 0.0f && player.snap_axis == AXIS_X)
+    if(player.snap_axis == AXIS_Y
+    && VelocityIsRight(player.vel)
+    && player.local_tilemap_pos.x > curr_tile_center_pos.x)
     {
-        TileIndex curr_tile = player.current_tile(tilemap);
-        v2d curr_tile_center_pos = tilemap.center_pos_of_tile(curr_tile.row, curr_tile.col);
-
-        if (player.vel.y > 0.0f)
-        {
-            if (player.local_tilemap_pos.y > curr_tile_center_pos.y)
-            {
-                player.local_tilemap_pos.y = curr_tile_center_pos.y;
-                player.vel.y = 0.0f;
-                player.vel.x = sign(player.vel.x) * player.speed;
-            }
-        }
-        else
-        {
-            if (player.local_tilemap_pos.y < curr_tile_center_pos.y)
-            {
-                player.local_tilemap_pos.y = curr_tile_center_pos.y;
-                player.vel.y = 0.0f;
-                player.vel.x = sign(player.vel.x) * player.speed;
-            }
-        }
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
+        player.vel.y = sign(player.vel.y) * player.speed;
     }
+    else if(player.snap_axis == AXIS_Y
+    && VelocityIsLeft(player.vel)
+    && player.local_tilemap_pos.x < curr_tile_center_pos.x)
+    {
+        player.local_tilemap_pos.x = curr_tile_center_pos.x;
+        player.vel.x = 0.0f;
+        player.vel.y = sign(player.vel.y) * player.speed;
+    }
+    else if(player.snap_axis == AXIS_X
+    && VelocityIsUp(player.vel)
+    && player.local_tilemap_pos.y < curr_tile_center_pos.y)
+    {
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
+        player.vel.x = sign(player.vel.x) * player.speed;
+    }
+    else if(player.snap_axis == AXIS_X
+    && VelocityIsDown(player.vel)
+    && player.local_tilemap_pos.y > curr_tile_center_pos.y)
+    {
+        player.local_tilemap_pos.y = curr_tile_center_pos.y;
+        player.vel.y = 0.0f;
+        player.vel.x = sign(player.vel.x) * player.speed;
+    }
+
 }
 
 
