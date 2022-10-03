@@ -9,6 +9,13 @@
 #include <src/engine/util/util_draw.h>
 
 
+bool
+TilemapIsCollisionTileAt(Tilemap tilemap, int row, int col)
+{
+    return std_vector_2d_at<char>(tilemap.is_collision_tiles, row, col, tilemap.n_cols);
+}
+
+
 int
 two_dim_to_one_dim_index(int row, int col, int n_cols)
 {

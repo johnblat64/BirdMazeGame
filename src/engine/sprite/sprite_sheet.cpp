@@ -85,8 +85,10 @@ AnimatedSpriteInit(SpriteSheet sprite_sheet, Uint32 start_frame, Uint32 end_fram
     AnimatedSprite animated_sprite;
     animated_sprite.sprite_sheet = sprite_sheet;
     animated_sprite.start_frame = start_frame;
+    animated_sprite.curr_frame = start_frame;
     animated_sprite.end_frame = end_frame;
     animated_sprite.FPS = FPS;
+    animated_sprite.accumulator = 0.0;
 
     return animated_sprite;
 }
