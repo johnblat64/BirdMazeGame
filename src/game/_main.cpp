@@ -460,8 +460,6 @@ int main(int argc, char *argv[])
         PlayerMove(player);
         PlayerSetPositionTilemapWrap(player, tilemap);
         PlayerTilemapCollisionHandle(player, tilemap);
-        
-        
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
 
