@@ -20,6 +20,7 @@ ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global
 SDL_Texture *target_texture;
 SDL_Texture *tileset_window;
 SDL_Texture *tileset_texture;
+SDL_Color background_color = {0x6E,0x62,0x59,0xFF};
 
 
 WorldPosition tilemap_position = {0.0, 0.0};
@@ -459,7 +460,8 @@ namespace Editor
 
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
             Util::RenderTargetSet(Global::renderer, tileset_window);
-
+            SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
+            SDLErrorHandle(SDL_RenderClear(Global::renderer));
             RenderTileset(0, 0);
             Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
                            SDL_Color());
