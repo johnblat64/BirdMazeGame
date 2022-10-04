@@ -1,3 +1,4 @@
+#include <filesystem>
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
 #include "imgui/imgui_internal.h"
@@ -55,7 +56,8 @@ Uint32 tile_cell_size;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
-std::string assets_rel_path_prefix = "assets/";
+
+std::filesystem::path assets_rel_path_prefix = "assets/";
 std::string image_file_path = "";
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
@@ -166,7 +168,7 @@ namespace Editor
     TilesetLoad()
     {
         int req_format = STBI_rgb_alpha;
-        image_file_path = assets_rel_path_prefix + image_file_path;
+        image_file_path = assets_rel_path_prefix.string() + image_file_path;
         unsigned char *tileset_image_data = stbi_load(image_file_path.c_str(), &tileset_width, &tileset_height,
                                                       &tileset_channels, req_format);
         if (tileset_image_data == NULL)

@@ -14,6 +14,12 @@ set_property(
     PROPERTY BUILD_RPATH $ORIGIN/external/SDL2;
 )
 
+set_property(
+    TARGET Game Editor
+    PROPERTY CXX_STANDARD 17
+)
+
+
 add_subdirectory(external/SDL2)
 
 
