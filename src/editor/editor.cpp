@@ -58,7 +58,8 @@ char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfull
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
 std::filesystem::path assets_rel_path_prefix = "assets/";
-std::string image_file_path = "";
+std::string input_text_image_file_path = "";
+std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 
@@ -168,8 +169,8 @@ namespace Editor
     TilesetLoad()
     {
         int req_format = STBI_rgb_alpha;
-        image_file_path = assets_rel_path_prefix.string() + image_file_path;
-        unsigned char *tileset_image_data = stbi_load(image_file_path.c_str(), &tileset_width, &tileset_height,
+        full_image_file_path = assets_rel_path_prefix.string() + input_text_image_file_path;
+        unsigned char *tileset_image_data = stbi_load(full_image_file_path.c_str(), &tileset_width, &tileset_height,
                                                       &tileset_channels, req_format);
         if (tileset_image_data == NULL)
         {
@@ -271,7 +272,9 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::InputText(" ", &image_file_path);
+            ImGui::Text("assets/");
+            ImGui::SameLine();
+            ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
             
             if (ImGui::Button("Load Tileset"))
