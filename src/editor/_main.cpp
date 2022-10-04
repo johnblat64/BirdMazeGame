@@ -9,8 +9,6 @@
 #include "src/engine/util/util_error_handling.h"
 #include <src/engine/global.h>
 #include "editor.h"
-#include <Windows.h>
-#include <iostream>
 
 //--------------------------------------------------------
 
