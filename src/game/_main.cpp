@@ -156,7 +156,6 @@ bool VelocityIsRight(v2d vel)
 }
 
 
-
 //-----------------------------------------------------------------------------------------------
 // local_sprite_pos  of {0, 0) would be directly positioned over the players own position.
 Player

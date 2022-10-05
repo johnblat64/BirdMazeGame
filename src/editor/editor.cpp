@@ -1,12 +1,14 @@
+#include <filesystem>
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui.h"
+#include "imgui/misc/cpp/imgui_stdlib.h"
 #include "src/engine/util/util_error_handling.h"
 #include "src/engine/util/util_load_save.h"
 #include "src/engine/util/util_draw.h"
 #include "src/engine/global.h"
-#include "nativefiledialog-extended/src/include/nfd.h"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -18,6 +20,7 @@ ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global
 SDL_Texture *target_texture;
 SDL_Texture *tileset_window;
 SDL_Texture *tileset_texture;
+SDL_Color background_color = {0x6E,0x62,0x59,0xFF};
 
 
 WorldPosition tilemap_position = {0.0, 0.0};
@@ -55,8 +58,9 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
-nfdchar_t *image_file_path = "";
-nfdfilteritem_t image_file_filter[1] = {{"Image file", "png"}};
+std::filesystem::path assets_rel_path_prefix = "assets/";
+std::string input_text_image_file_path = "";
+std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 
@@ -166,7 +170,8 @@ namespace Editor
     TilesetLoad()
     {
         int req_format = STBI_rgb_alpha;
-        unsigned char *tileset_image_data = stbi_load(image_file_path, &tileset_width, &tileset_height,
+        full_image_file_path = assets_rel_path_prefix.string() + input_text_image_file_path;
+        unsigned char *tileset_image_data = stbi_load(full_image_file_path.c_str(), &tileset_width, &tileset_height,
                                                       &tileset_channels, req_format);
         if (tileset_image_data == NULL)
         {
@@ -216,30 +221,6 @@ namespace Editor
         }
     }
 
-    //-----------------------------------------------------------
-    void 
-    SetImageFilePathFromDialog()
-    {
-        // You can initialize nfd either at the start and end of the program or, like here, everytime you want to show the file dialog.
-        NFD_Init();
-        
-        nfdresult_t result = NFD_OpenDialog(&image_file_path, image_file_filter, 1, NULL);
-        if (result == NFD_OKAY) 
-        {
-            // Since we are loading the tileset in a separate button we dont really do anything here.
-        }
-        else if ( result == NFD_CANCEL)
-        {
-            // Not much to do when the user cancels so we just leave it blank to catch the errors.
-        }
-        else 
-        {
-            // Again, another area where what we do is still up in the air.
-            printf("Error: %s", NFD_GetError());
-        }
-
-        NFD_Quit();
-    }
     //-----------------------------------------------------------
     void
     TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap)
@@ -292,13 +273,11 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::InputText(" ", image_file_path, strlen(image_file_path), ImGuiInputTextFlags_ReadOnly);
+            ImGui::Text(assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
-            if (ImGui::Button("Browse"))
-            {
-                SetImageFilePathFromDialog();
-            }
+            ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
+            
             if (ImGui::Button("Load Tileset"))
             {
                 bool success = TilesetLoad();
@@ -481,7 +460,8 @@ namespace Editor
 
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
             Util::RenderTargetSet(Global::renderer, tileset_window);
-
+            SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
+            SDLErrorHandle(SDL_RenderClear(Global::renderer));
             RenderTileset(0, 0);
             Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
                            SDL_Color());

@@ -90,6 +90,7 @@ main(int argc, char *argv[])
 
     while (!should_quit)
     {
+
         Global::delta_time_ms = delta_time_frame_end_ticks - delta_time_frame_start_ticks;
 
         delta_time_frame_start_ticks = SDL_GetTicks();

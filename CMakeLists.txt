@@ -6,16 +6,21 @@ add_executable(Game
         src/game/_main.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp)
 
 add_executable(Editor
-        src/editor/_main.cpp src/editor/editor.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp)
+        src/editor/_main.cpp src/editor/editor.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/misc/cpp/imgui_stdlib.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp)
 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN  TRUE)
 set_property(
     TARGET Game Editor
-    PROPERTY BUILD_RPATH $ORIGIN/external/SDL2;$ORIGIN/external/flecs;$ORIGIN/external/nativefiledialog-extended;
+    PROPERTY BUILD_RPATH $ORIGIN/external/SDL2;
 )
 
+set_property(
+    TARGET Game Editor
+    PROPERTY CXX_STANDARD 17
+)
+
+
 add_subdirectory(external/SDL2)
-add_subdirectory(external/nativefiledialog-extended)
 
 
 include_directories(
@@ -44,4 +49,4 @@ endif()
 
 
 target_link_libraries(Game SDL2::SDL2 SDL2::SDL2main)
-target_link_libraries(Editor SDL2::SDL2 SDL2::SDL2main nfd)
+target_link_libraries(Editor SDL2::SDL2 SDL2::SDL2main)
