@@ -273,7 +273,7 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::Text("assets/");
+            ImGui::Text(assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
