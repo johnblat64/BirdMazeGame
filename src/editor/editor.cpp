@@ -40,12 +40,16 @@ float relative_tilemap_mouse_x;
 float relative_tilemap_mouse_y;
 float screen_to_world_offset_x = 0;
 float screen_to_world_offset_y = 0;
-float screen_coordinate_x = 0;
-float screen_coordinate_y = 0;
+float world_coordinate_tilemap_x = 0;
+float world_coordinate_tilemap_y = 0;
+float world_coordinate_axis_x = 0;
+float world_coordinate_axis_y = 0;
 float start_pan_x = 0;
 float start_pan_y = 0;
 float editor_tilemap_pos_x = tilemap_position.x;
 float editor_tilemap_pos_y = tilemap_position.y;
+float editor_axis_pos_x = 0;
+float editor_axis_pos_y = 0;
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
@@ -75,6 +79,7 @@ std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
+SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
 
 enum TabView
 {
@@ -341,8 +346,8 @@ namespace Editor
                 &logical_mouse_y);
 
         // find out what tile the mouse cursor is in because this info is useful to the user
-        relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-        relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
+        relative_tilemap_mouse_x = logical_mouse_x - editor_tilemap_pos_x;
+        relative_tilemap_mouse_y = logical_mouse_y - editor_tilemap_pos_y;
         if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
         {
             tilemap_row_mouse_on_display = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
@@ -373,8 +378,8 @@ namespace Editor
                 int row_selected;
                 int col_selected;
 
-                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
+                relative_tilemap_mouse_x = logical_mouse_x - editor_tilemap_pos_x;
+                relative_tilemap_mouse_y = logical_mouse_y - editor_tilemap_pos_y;
 
                 if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
@@ -398,8 +403,8 @@ namespace Editor
                 int row_selected;
                 int col_selected;
 
-                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
+                relative_tilemap_mouse_x = logical_mouse_x - editor_tilemap_pos_x;
+                relative_tilemap_mouse_y = logical_mouse_y - editor_tilemap_pos_y;
 
                 if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
@@ -446,14 +451,25 @@ namespace Editor
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 0, 255, 255, 255));
             SDLErrorHandle(SDL_RenderFillRect(Global::renderer, &mouseRect));
+            
+            world_coordinate_tilemap_x = tilemap_position.x;
+            world_coordinate_tilemap_y = tilemap_position.y;
 
             Util::WorldCoordinatesToScreenCoordinates(screen_to_world_offset_x,
                                                       screen_to_world_offset_y,
-                                                      screen_coordinate_x,
-                                                      screen_coordinate_y,
+                                                      world_coordinate_tilemap_x,
+                                                      world_coordinate_tilemap_y,
                                                       editor_tilemap_pos_x,
                                                       editor_tilemap_pos_y);
+
+            Util::WorldCoordinatesToScreenCoordinates(screen_to_world_offset_x,
+                                                      screen_to_world_offset_y,
+                                                      world_coordinate_axis_x,
+                                                      world_coordinate_axis_y,
+                                                      editor_axis_pos_x,
+                                                      editor_axis_pos_y);
             
+            Util::RenderInfiniteAxis(Global::renderer, autotiler_window_size_current_frame.y, autotiler_window_size_current_frame.x, editor_axis_pos_x, editor_axis_pos_y, axis_color);
             // render tilemap collision_tiles
             TilemapCollisionTileRectsRender(tilemap,
                                             editor_tilemap_pos_x,
