@@ -7,7 +7,9 @@
 #include "src/engine/util/util_error_handling.h"
 #include "src/engine/util/util_load_save.h"
 #include "src/engine/util/util_draw.h"
+#include "src/engine/util/util_panning.h"
 #include "src/engine/global.h"
+
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -36,6 +38,12 @@ float logical_mouse_x = 0;
 float logical_mouse_y = 0;
 float relative_tilemap_mouse_x;
 float relative_tilemap_mouse_y;
+float screen_to_world_offset_x = 0;
+float screen_to_world_offset_y = 0;
+float screen_coordinate_x = 0;
+float screen_coordinate_y = 0;
+float start_pan_x = 0;
+float start_pan_y = 0;
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
@@ -54,11 +62,13 @@ Uint32 imgui_save_notification_timer = 0;
 Uint32 imgui_tileset_n_rows = 8;
 Uint32 imgui_tileset_n_cols = 20;
 Uint32 tile_cell_size;
+Uint32 mouse_button_state_current;
+Uint32 mouse_button_state_prev;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
-std::filesystem::path assets_rel_path_prefix = "assets/";
+std::filesystem::path assets_rel_path_prefix = "../assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
@@ -305,7 +315,8 @@ namespace Editor
     void
     TilemapAutoTilerWindow(Tilemap &tilemap)
     {
-        Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
+        mouse_button_state_prev = mouse_button_state_current;
+        mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
 
         // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
         // nScreenX = fWorldX - offSetX
@@ -318,6 +329,7 @@ namespace Editor
         // we need to add the panel size to the screen position to get the offset we would normally use for our formula
         // i.e. we are transforming the y coodinate from bottomleft -> topleft.
         window_mouse_y -= ((int) screen_mouse_pos.y - (int) autotiler_window_size_previous_frame.y);
+        
 
         SDL_RenderWindowToLogical(
                 Global::renderer,
@@ -353,7 +365,7 @@ namespace Editor
             ImGui::Image(target_texture, autotiler_window_size_previous_frame);
             screen_mouse_pos = ImGui::GetCursorScreenPos();
 
-            if (mouse_button_state & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
             {
                 bool tile_selected = false;
                 int row_selected;
@@ -378,7 +390,7 @@ namespace Editor
                     Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, true);
                 }
             }
-            else if (mouse_button_state & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
+            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
             {
                 bool tile_selected = false;
                 int row_selected;
@@ -403,7 +415,22 @@ namespace Editor
                     Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, false);
                 }
             }
+            else if ((mouse_button_state_prev & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
+            {
+                screen_to_world_offset_x -= (float) (window_mouse_x - start_pan_x);
+                screen_to_world_offset_y -= (float) (window_mouse_y - start_pan_y);
 
+                start_pan_x = window_mouse_x;
+                start_pan_y = window_mouse_y;
+            }
+            else if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
+            {
+                start_pan_x = window_mouse_x;
+                start_pan_y = window_mouse_y;
+            }
+            
+
+            
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
@@ -418,7 +445,13 @@ namespace Editor
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 0, 255, 255, 255));
             SDLErrorHandle(SDL_RenderFillRect(Global::renderer, &mouseRect));
 
-
+            Util::WorldCoordinatesToScreenCoordinates(screen_to_world_offset_x,
+                                                      screen_to_world_offset_y,
+                                                      screen_coordinate_x,
+                                                      screen_coordinate_y,
+                                                      tilemap_position.x,
+                                                      tilemap_position.y);
+            
             // render tilemap collision_tiles
             TilemapCollisionTileRectsRender(tilemap,
                                             tilemap_position.x,
