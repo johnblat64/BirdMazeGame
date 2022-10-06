@@ -44,6 +44,8 @@ float screen_coordinate_x = 0;
 float screen_coordinate_y = 0;
 float start_pan_x = 0;
 float start_pan_y = 0;
+float editor_tilemap_pos_x = tilemap_position.x;
+float editor_tilemap_pos_y = tilemap_position.y;
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
@@ -449,17 +451,17 @@ namespace Editor
                                                       screen_to_world_offset_y,
                                                       screen_coordinate_x,
                                                       screen_coordinate_y,
-                                                      tilemap_position.x,
-                                                      tilemap_position.y);
+                                                      editor_tilemap_pos_x,
+                                                      editor_tilemap_pos_y);
             
             // render tilemap collision_tiles
             TilemapCollisionTileRectsRender(tilemap,
-                                            tilemap_position.x,
-                                            tilemap_position.y,
+                                            editor_tilemap_pos_x,
+                                            editor_tilemap_pos_y,
                                             SDL_Color{255, 0, 0, 255});
             TilemapGridRender(tilemap,
-                              tilemap_position.x,
-                              tilemap_position.y,
+                              editor_tilemap_pos_x,
+                              editor_tilemap_pos_y,
                               SDL_Color{100, 100, 100, 255});
 
         }
