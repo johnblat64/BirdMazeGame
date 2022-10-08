@@ -43,14 +43,14 @@ v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
 v2d imgui_axis_position = {0, 0};
 v2d imgui_offset_tilemap = {0, 0};
 v2d imgui_offset_axis = {0, 0};
-v2d global_offset = {0, 0};
+v2d imgui_window_global_offset = {0, 0};
 
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
 ImVec2 tileset_window_size_previous_frame;
 ImVec2 tileset_window_size_current_frame;
-ImVec2 screen_mouse_pos;
+ImVec2 imgui_window_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
@@ -319,7 +319,7 @@ namespace Editor
     {
         mouse_button_state_prev = mouse_button_state_current;
         mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
-
+        
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 
@@ -338,19 +338,19 @@ namespace Editor
 
             ImGui::Image(target_texture, autotiler_window_size_previous_frame);
 
-            screen_mouse_pos = ImGui::GetCursorScreenPos();
+            imgui_window_pos = ImGui::GetCursorScreenPos();
 
             // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
             // nScreenX = fWorldX - offSetX
             // nScreenX = fWorldY - offSetY
             // Where in our case our world to screen should be 1 to 1. i.e. the world is being rendered at (fWorldX = 0, fWorldY = 0) relative to its display
             // along with our screen starting from (0,0), hence the reason fWorldX and fWorldY do not appear below.
-            imgui_window_mouse_x -= (int) screen_mouse_pos.x;
+            imgui_window_mouse_x -= (int) imgui_window_pos.x;
 
             // Since imgui has the convention of its screen position being measure from the BOTTOM LEFT CORNER rather than the TOP LEFT CORNER as one would usually be used to
             // we need to add the panel size to the screen position to get the offset we would normally use for our formula
             // i.e. we are transforming the y coodinate from bottomleft -> topleft.
-            imgui_window_mouse_y -= ((int) screen_mouse_pos.y - (int) autotiler_window_size_previous_frame.y);
+            imgui_window_mouse_y -= ((int) imgui_window_pos.y - (int) autotiler_window_size_previous_frame.y);
 
 
             SDL_RenderWindowToLogical(
@@ -415,8 +415,8 @@ namespace Editor
             }
             else if ((mouse_button_state_prev & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
             {
-                global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
-                global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
+                imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
+                imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
 
                 panning_offset.x = imgui_window_mouse_x;
                 panning_offset.y = imgui_window_mouse_y;
@@ -427,7 +427,10 @@ namespace Editor
                 panning_offset.y = imgui_window_mouse_y;
             }
 
-
+            if ((mouse_button_state_current & SDL_BUTTON_MMASK) &&  ImGui::IsWindowHovered()) 
+            {
+                ImGui::SetWindowFocus("Tilemap");
+            }
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
@@ -445,13 +448,13 @@ namespace Editor
             imgui_offset_tilemap.x = tilemap_position.x;
             imgui_offset_tilemap.y = tilemap_position.y;
 
-            imgui_tilemap_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(global_offset.x,
-                                                      global_offset.y,
+            imgui_tilemap_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(imgui_window_global_offset.x,
+                                                      imgui_window_global_offset.y,
                                                       imgui_offset_tilemap.x,
                                                       imgui_offset_tilemap.y);
 
-            imgui_axis_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(global_offset.x,
-                                                      global_offset.y,
+            imgui_axis_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(imgui_window_global_offset.x,
+                                                      imgui_window_global_offset.y,
                                                       imgui_offset_axis.x,
                                                       imgui_offset_axis.y);
 
@@ -471,6 +474,8 @@ namespace Editor
                               imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
         }
+        
+
         ImGui::End();
     }
 
