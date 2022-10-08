@@ -10,6 +10,46 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <external/stb/stb_image.h>
+#include <bitset>
+
+
+//----------------------------------
+const size_t MAX_DOTS = 1024;
+struct DotsPool
+{
+    std::bitset<MAX_DOTS> is_active;
+    v2d tilemap_positions[MAX_DOTS];
+
+    size_t n_active_dots()
+    {
+        return is_active.count();
+    }
+};
+
+DotsPool DotsPoolInit()
+{
+    DotsPool dots_pool;
+    dots_pool.is_active.reset();
+    return dots_pool;
+}
+
+float wave_height = 5;
+float wave_speed = 10;
+
+void DotsPoolRender(DotsPool &dots_pool)
+{
+    for(int i = 0; i < MAX_DOTS; i++)
+    {
+        if(dots_pool.is_active[i] == false)
+        {
+            continue;
+        }
+        v2d render_pos;
+        render_pos.x = dots_pool.tilemap_positions[i].x;
+        render_pos.y = dots_pool.tilemap_positions[i].y + sin((float)SDL_GetTicks()/100.0f + ((float)i/10.0f) * wave_speed) * wave_height;
+        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
+    }
+}
 
 
 //-----------------------------------------------------------------------------------------------
@@ -413,6 +453,38 @@ int main(int argc, char *argv[])
     AnimatedSprite player_animated_sprite = AnimatedSpriteInit(player_sprite_sheet, 0, 11, 12);
     Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 10, 10, 1.0f, tilemap);
 
+    DotsPool dots_pool = DotsPoolInit();
+//    for(int i = 0; i < MAX_DOTS; i++)
+//    {
+//        dots_pool.is_active[i] = true;
+////        dots_pool.tilemap_positions[i].x = i * 10;
+////        dots_pool.tilemap_positions[i].y = i * 10;
+//    }
+
+    for(int row = 0; row < tilemap.n_rows; row++)
+    {
+        for(int col = 0; col < tilemap.n_cols; col++)
+        {
+            int i = two_dim_to_one_dim_index(row, col, tilemap.n_cols);
+
+            if(i >= MAX_DOTS)
+            {
+                break;
+            }
+
+            if(!TilemapIsCollisionTileAt(tilemap, row, col))
+            {
+                dots_pool.is_active[i] = true;
+                dots_pool.tilemap_positions[i] = tilemap.center_pos_of_tile(row, col);
+            }
+            else
+            {
+                dots_pool.is_active[i] = false;
+            }
+        }
+    }
+
+
     double delta_time_in_seconds;
     double frame_start_seconds = 0.0f;
     double frame_end_seconds = 0.0f;
@@ -480,6 +552,15 @@ int main(int argc, char *argv[])
 
         //PlayerRenderDebugCurrentRect(player, tilemap);
 
+//        for(int i = 0; i < MAX_DOTS; i++)
+//        {
+//            if(dots_pool.is_active[i] == false)
+//            {
+//                continue;
+//            }
+//            dots_pool.tilemap_positions[i].y += sin(SDL_GetTicks()/1000);
+//        }
+        DotsPoolRender(dots_pool);
 
         float scale = (tilemap.tile_size * 2.0f) /
                       player.animated_sprite.sprite_sheet.cell_width(); // how big should sprite be relative to tile
