@@ -369,6 +369,11 @@ namespace Editor
                 tilemap_col_mouse_on_display = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
             }
 
+            if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowHovered())
+            {
+                ImGui::SetWindowFocus("Tilemap");
+            }
+
             if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
             {
                 bool tile_selected = false;
@@ -427,10 +432,7 @@ namespace Editor
                 panning_offset.y = imgui_window_mouse_y;
             }
 
-            if ((mouse_button_state_current & SDL_BUTTON_MMASK) &&  ImGui::IsWindowHovered()) 
-            {
-                ImGui::SetWindowFocus("Tilemap");
-            }
+            
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
