@@ -7,7 +7,9 @@
 #include "src/engine/util/util_error_handling.h"
 #include "src/engine/util/util_load_save.h"
 #include "src/engine/util/util_draw.h"
+#include "src/engine/util/util_panning.h"
 #include "src/engine/global.h"
+
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -27,8 +29,8 @@ WorldPosition tilemap_position = {0.0, 0.0};
 
 int tilemap_row_mouse_on_display = 0;
 int tilemap_col_mouse_on_display = 0;
-int window_mouse_x = 0;
-int window_mouse_y = 0;
+int imgui_window_mouse_x = 0;
+int imgui_window_mouse_y = 0;
 int tileset_width = 1;
 int tileset_height = 1;
 int tileset_channels = 0;
@@ -36,12 +38,19 @@ float logical_mouse_x = 0;
 float logical_mouse_y = 0;
 float relative_tilemap_mouse_x;
 float relative_tilemap_mouse_y;
+v2d panning_offset = {0, 0};
+v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
+v2d imgui_axis_position = {0, 0};
+v2d imgui_offset_tilemap = {0, 0};
+v2d imgui_offset_axis = {0, 0};
+v2d imgui_window_global_offset = {0, 0};
+
 
 ImVec2 autotiler_window_size_previous_frame;
 ImVec2 autotiler_window_size_current_frame;
 ImVec2 tileset_window_size_previous_frame;
 ImVec2 tileset_window_size_current_frame;
-ImVec2 screen_mouse_pos;
+ImVec2 imgui_window_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
@@ -54,6 +63,8 @@ Uint32 imgui_save_notification_timer = 0;
 Uint32 imgui_tileset_n_rows = 8;
 Uint32 imgui_tileset_n_cols = 20;
 Uint32 tile_cell_size;
+Uint32 mouse_button_state_current;
+Uint32 mouse_button_state_prev;
 char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
@@ -63,6 +74,7 @@ std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
+SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
 
 enum TabView
 {
@@ -246,7 +258,7 @@ namespace Editor
                 imgui_tilemap_n_rows = tilemap.n_rows;
                 imgui_tilemap_n_cols = tilemap.n_cols;
             }
-            ImGui::Text("Window Mouse Pos:  (%d, %d)", window_mouse_x, window_mouse_y);
+            ImGui::Text("Window Mouse Pos:  (%d, %d)", imgui_window_mouse_x, imgui_window_mouse_y);
             ImGui::Text("Logical Mouse Pos: (%.2f, %.2f)", logical_mouse_x, logical_mouse_y);
             ImGui::Text("TileMap Index:     (%d, %d)", tilemap_row_mouse_on_display, tilemap_col_mouse_on_display);
 
@@ -305,35 +317,9 @@ namespace Editor
     void
     TilemapAutoTilerWindow(Tilemap &tilemap)
     {
-        Uint32 mouse_button_state = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
-
-        // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
-        // nScreenX = fWorldX - offSetX
-        // nScreenX = fWorldY - offSetY
-        // Where in our case our world to screen should be 1 to 1. i.e. the world is being rendered at (fWorldX = 0, fWorldY = 0) relative to its display
-        // along with our screen starting from (0,0), hence the reason fWorldX and fWorldY do not appear below.
-        window_mouse_x -= (int) screen_mouse_pos.x;
-
-        // Since imgui has the convention of its screen position being measure from the BOTTOM LEFT CORNER rather than the TOP LEFT CORNER as one would usually be used to
-        // we need to add the panel size to the screen position to get the offset we would normally use for our formula
-        // i.e. we are transforming the y coodinate from bottomleft -> topleft.
-        window_mouse_y -= ((int) screen_mouse_pos.y - (int) autotiler_window_size_previous_frame.y);
-
-        SDL_RenderWindowToLogical(
-                Global::renderer,
-                window_mouse_x,
-                window_mouse_y,
-                &logical_mouse_x,
-                &logical_mouse_y);
-
-        // find out what tile the mouse cursor is in because this info is useful to the user
-        relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-        relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
-        if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
-        {
-            tilemap_row_mouse_on_display = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
-            tilemap_col_mouse_on_display = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
-        }
+        mouse_button_state_prev = mouse_button_state_current;
+        mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
+        
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 
@@ -351,16 +337,48 @@ namespace Editor
             }
 
             ImGui::Image(target_texture, autotiler_window_size_previous_frame);
-            screen_mouse_pos = ImGui::GetCursorScreenPos();
 
-            if (mouse_button_state & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            imgui_window_pos = ImGui::GetCursorScreenPos();
+
+            // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
+            // nScreenX = fWorldX - offSetX
+            // nScreenX = fWorldY - offSetY
+            // Where in our case our world to screen should be 1 to 1. i.e. the world is being rendered at (fWorldX = 0, fWorldY = 0) relative to its display
+            // along with our screen starting from (0,0), hence the reason fWorldX and fWorldY do not appear below.
+            imgui_window_mouse_x -= (int) imgui_window_pos.x;
+
+            // Since imgui has the convention of its screen position being measure from the BOTTOM LEFT CORNER rather than the TOP LEFT CORNER as one would usually be used to
+            // we need to add the panel size to the screen position to get the offset we would normally use for our formula
+            // i.e. we are transforming the y coodinate from bottomleft -> topleft.
+            imgui_window_mouse_y -= ((int) imgui_window_pos.y - (int) autotiler_window_size_previous_frame.y);
+
+
+            SDL_RenderWindowToLogical(
+                    Global::renderer,
+                    imgui_window_mouse_x,
+                    imgui_window_mouse_y,
+                    &logical_mouse_x,
+                    &logical_mouse_y);
+
+            // find out what tile the mouse cursor is in because this info is useful to the user
+            relative_tilemap_mouse_x = logical_mouse_x - imgui_tilemap_position.x;
+            relative_tilemap_mouse_y = logical_mouse_y - imgui_tilemap_position.y;
+            if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
+            {
+                tilemap_row_mouse_on_display = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
+                tilemap_col_mouse_on_display = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
+            }
+
+            if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowHovered())
+            {
+                ImGui::SetWindowFocus("Tilemap");
+            }
+
+            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
             {
                 bool tile_selected = false;
                 int row_selected;
                 int col_selected;
-
-                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
 
                 if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
@@ -378,14 +396,11 @@ namespace Editor
                     Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, true);
                 }
             }
-            else if (mouse_button_state & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
+            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
             {
                 bool tile_selected = false;
                 int row_selected;
                 int col_selected;
-
-                relative_tilemap_mouse_x = logical_mouse_x - tilemap_position.x;
-                relative_tilemap_mouse_y = logical_mouse_y - tilemap_position.y;
 
                 if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
                 {
@@ -403,7 +418,21 @@ namespace Editor
                     Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, false);
                 }
             }
+            else if ((mouse_button_state_prev & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
+            {
+                imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
+                imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
 
+                panning_offset.x = imgui_window_mouse_x;
+                panning_offset.y = imgui_window_mouse_y;
+            }
+            else if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
+            {
+                panning_offset.x = imgui_window_mouse_x;
+                panning_offset.y = imgui_window_mouse_y;
+            }
+
+            
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
@@ -418,18 +447,37 @@ namespace Editor
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 0, 255, 255, 255));
             SDLErrorHandle(SDL_RenderFillRect(Global::renderer, &mouseRect));
 
+            imgui_offset_tilemap.x = tilemap_position.x;
+            imgui_offset_tilemap.y = tilemap_position.y;
+
+            imgui_tilemap_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(imgui_window_global_offset.x,
+                                                      imgui_window_global_offset.y,
+                                                      imgui_offset_tilemap.x,
+                                                      imgui_offset_tilemap.y);
+
+            imgui_axis_position = Util::ImGuiOffsetCoordinatesToImGuiScreenCoordinates(imgui_window_global_offset.x,
+                                                      imgui_window_global_offset.y,
+                                                      imgui_offset_axis.x,
+                                                      imgui_offset_axis.y);
+
+            Util::RenderInfiniteAxis(Global::renderer, 
+                                    autotiler_window_size_current_frame.y,
+                                    autotiler_window_size_current_frame.x,
+                                    imgui_axis_position.x, imgui_axis_position.y,
+                                    axis_color);
 
             // render tilemap collision_tiles
             TilemapCollisionTileRectsRender(tilemap,
-                                            tilemap_position.x,
-                                            tilemap_position.y,
+                                            imgui_tilemap_position.x,
+                                            imgui_tilemap_position.y,
                                             SDL_Color{255, 0, 0, 255});
             TilemapGridRender(tilemap,
-                              tilemap_position.x,
-                              tilemap_position.y,
+                              imgui_tilemap_position.x,
+                              imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
-
         }
+        
+
         ImGui::End();
     }
 

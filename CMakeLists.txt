@@ -6,7 +6,7 @@ add_executable(Game
         src/game/_main.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp)
 
 add_executable(Editor
-        src/editor/_main.cpp src/editor/editor.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/misc/cpp/imgui_stdlib.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp)
+        src/editor/_main.cpp src/editor/editor.cpp src/engine/global.cpp src/engine/tile/tilemap_util.cpp src/engine/tile/tilemap_init.cpp src/engine/util/util_draw.cpp external/imgui/misc/cpp/imgui_stdlib.cpp external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/backends/imgui_impl_sdl.cpp  external/imgui/backends/imgui_impl_sdlrenderer.cpp src/engine/util/util_load_save.cpp src/engine/util/util_error_handling.cpp src/engine/sprite/sprite_sheet.cpp src/engine/util/util_misc.h src/engine/util/util_misc.cpp src/engine/util/util_panning.cpp)
 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN  TRUE)
 set_property(

@@ -18,4 +18,7 @@ namespace Util
     void
     DrawCircleFill(SDL_Renderer *renderer, Uint32 center_x, Uint32 center_y, Uint32 radius, SDL_Color color);
 
+    void
+    RenderInfiniteAxis(SDL_Renderer *renderer, float screen_height, float screen_width, float pan_x, float pan_y, SDL_Color color);
+
 }

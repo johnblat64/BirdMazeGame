@@ -82,4 +82,16 @@ namespace Util
             SDL_RenderDrawLine(renderer, center_x + y , center_y - x, center_x - y , center_y - x );
         }
     }
+
+    //--------------------------------------------------------
+    void 
+    RenderInfiniteAxis(SDL_Renderer *renderer, float screen_height, float screen_width, float pan_x, float pan_y, SDL_Color color)
+    {
+        SDLErrorHandle(SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a));
+        // Draw Vertical Line
+        SDLErrorHandle(SDL_RenderDrawLine(renderer, pan_x, screen_height, pan_x, 0));
+
+        // Draw Horizontal Line
+        SDLErrorHandle(SDL_RenderDrawLine(renderer, 0, pan_y, screen_width, pan_y));
+    }
 }
