@@ -32,6 +32,8 @@ int tilemap_row_mouse_on_display = 0;
 int tilemap_col_mouse_on_display = 0;
 int imgui_window_mouse_x = 0;
 int imgui_window_mouse_y = 0;
+int imgui_tileset_window_mouse_x = 0;
+int imgui_tileset_window_mouse_y = 0;
 int tileset_width = 1;
 int tileset_height = 1;
 int tileset_channels = 0;
@@ -39,6 +41,8 @@ float logical_mouse_x = 0;
 float logical_mouse_y = 0;
 float relative_tilemap_mouse_x;
 float relative_tilemap_mouse_y;
+float relative_tileset_mouse_x;
+float relative_tileset_mouse_y;
 v2d panning_offset = {0, 0};
 v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
 v2d imgui_axis_position = {0, 0};
@@ -52,6 +56,7 @@ ImVec2 autotiler_window_size_current_frame;
 ImVec2 tileset_window_size_previous_frame;
 ImVec2 tileset_window_size_current_frame;
 ImVec2 imgui_window_pos;
+ImVec2 imgui_tileset_window_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
@@ -279,6 +284,7 @@ namespace Editor
                 imgui_save_notification_timer = imgui_save_notification_duration_ms;
             }
 
+
             if (imgui_save_notification_timer > 0)
             {
                 imgui_save_notification_timer -= Global::delta_time_ms;
@@ -287,7 +293,7 @@ namespace Editor
 
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
-
+            ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             ImGui::Text(assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
@@ -303,6 +309,7 @@ namespace Editor
                 }
                 else
                 {
+                    Tileset_Free(tileset);
                     tileset = Tileset_Init(tile_cell_size, imgui_tileset_n_rows, imgui_tileset_n_cols);
                 }
             }
@@ -501,7 +508,7 @@ namespace Editor
     void
     TilesetBitmaskerWindow()
     {
-        mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
+        mouse_button_state_current = SDL_GetMouseState(&imgui_tileset_window_mouse_x, &imgui_tileset_window_mouse_y);
         if (ImGui::Begin("Tileset"))
         {
 
@@ -516,29 +523,18 @@ namespace Editor
 
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
 
-            imgui_window_pos = ImGui::GetCursorScreenPos();
-            imgui_window_mouse_x -= (int) imgui_window_pos.x;
-            imgui_window_mouse_y -= ((int) imgui_window_pos.y - (int) tileset_window_size_current_frame.y);
+            imgui_tileset_window_pos = ImGui::GetCursorScreenPos();
+            imgui_tileset_window_mouse_x -= (int) imgui_tileset_window_pos.x;
+            imgui_tileset_window_mouse_y -= ((int) imgui_tileset_window_pos.y - (int) tileset_window_size_current_frame.y);
 
-
-            SDL_RenderWindowToLogical(
-                    Global::renderer,
-                    imgui_window_mouse_x,
-                    imgui_window_mouse_y,
-                    &logical_mouse_x,
-                    &logical_mouse_y);
-
-            // find out what tile the mouse cursor is in because this info is useful to the user
-            relative_tilemap_mouse_x = logical_mouse_x - imgui_tilemap_position.x;
-            relative_tilemap_mouse_y = logical_mouse_y - imgui_tilemap_position.y;
 
             if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
             {
-                Tileset_Set_BitMask_Tile(tileset, relative_tilemap_mouse_x, relative_tilemap_mouse_y);
+                Tileset_Set_BitMask_Tile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             }
             else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
             {
-                Tileset_Unset_BitMask_Tile(tileset, relative_tilemap_mouse_x, relative_tilemap_mouse_y);
+                Tileset_Unset_BitMask_Tile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             }
 
             
@@ -548,10 +544,10 @@ namespace Editor
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
             RenderTileset(0, 0);
-            Render_Bitmask(Global::renderer, tileset);
+            Bitmask_Render(Global::renderer, tileset);
             
             Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
-                           SDL_Color());
+                           SDL_Color{100, 100, 100, 255});
 
         }
         ImGui::End();

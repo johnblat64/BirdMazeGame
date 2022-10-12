@@ -4,6 +4,8 @@
 void 
 Tileset_Set_BitMask_Tile(Tileset &tileset, int mouseX, int mouseY)
 {
+    if (tileset.m_Bitmask == NULL)
+        return;
     Uint8 bitmask_cell_values[3][3] = {
             {0x01, 0x02, 0x04},
             {0x08, 0x00, 0x10},
@@ -11,7 +13,6 @@ Tileset_Set_BitMask_Tile(Tileset &tileset, int mouseX, int mouseY)
     };
     int row_tile_clicked = mouseY / tileset.tile_size;
     int col_tile_clicked = mouseX / tileset.tile_size;
-    printf("row: %i col:%i\n\n", row_tile_clicked, col_tile_clicked);
 
     if (row_tile_clicked < tileset.n_rows && col_tile_clicked < tileset.n_cols)
     {
@@ -24,13 +25,10 @@ Tileset_Set_BitMask_Tile(Tileset &tileset, int mouseX, int mouseY)
 
         int bit_clicked_row = relative_mouse_y / bit_cell_size;
         int bit_clicked_col = relative_mouse_x / bit_cell_size;
-        printf("bit row: %i bit col:%i\n\n", bit_clicked_row, bit_clicked_col);
         
         Uint8 clicked_bit_value = bitmask_cell_values[bit_clicked_row][bit_clicked_col];
         Uint8 current_bitmask_value =  tileset.Bitmask_Get_Element(row_tile_clicked, col_tile_clicked);
-        printf("Bitmask value before: %i\n", current_bitmask_value);
         current_bitmask_value |= clicked_bit_value;
-        printf("Bitmask value after: %i\n", current_bitmask_value);
         tileset.Bitmask_Set_Element(current_bitmask_value, row_tile_clicked, col_tile_clicked);
     }
 
@@ -39,6 +37,8 @@ Tileset_Set_BitMask_Tile(Tileset &tileset, int mouseX, int mouseY)
 void 
 Tileset_Unset_BitMask_Tile(Tileset &tileset, int mouseX, int mouseY)
 {
+    if (tileset.m_Bitmask == NULL)
+        return;
     Uint8 bitmask_cell_values[3][3] = {
             {0x01, 0x02, 0x04},
             {0x08, 0x00, 0x10},
@@ -91,7 +91,16 @@ Tileset_Init(Uint32 tile_size, Uint32 n_rows, Uint32 n_cols)
 }
 
 void 
-Render_Bitmask(SDL_Renderer *renderer, Tileset tileset)
+Tileset_Free(Tileset &tileset) 
+{
+    if (tileset.m_Bitmask == NULL)
+        return;
+    else
+        free(tileset.m_Bitmask);
+}
+
+void 
+Bitmask_Render(SDL_Renderer *renderer, Tileset tileset)
 {
     SDL_Rect visual_bitmask_rect;
 
@@ -100,7 +109,7 @@ Render_Bitmask(SDL_Renderer *renderer, Tileset tileset)
     int bit_rect_size = tileset.tile_size / tile_num;
     visual_bitmask_rect.w = bit_rect_size;
     visual_bitmask_rect.h = bit_rect_size;
-    SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0xFF, 120);
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 120);
 
     for (int row = 0; row < tileset.n_rows; row++)
     {
