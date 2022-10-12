@@ -1,10 +1,10 @@
-#include <src/engine/sprite/sprite_sheet.h>
-#include <external/stb/stb_image.h>
+#include "sprite_sheet.h"
+#include "stb/stb_image.h"
 #include <stdio.h>
-#include <src/engine/util/util_error_handling.h>
-#include <src/engine/global.h>
+#include "src/util/util_error_handling.h"
+#include "src/global.h"
 #include <math.h>
-#include "src/engine/tile/tilemap.h"
+#include "src/tile/tilemap.h"
 
 
 SpriteSheet SpriteSheetCreateFromFile(const char *filename, const char *sprite_sheet_name, int rows, int cols)

@@ -1,34 +1,227 @@
 #include <filesystem>
-#include "SDL2/include/SDL.h"
-#include "src/engine/tile/tilemap.h"
-#include "imgui/imgui_internal.h"
-#include "imgui/imgui.h"
-#include "imgui/misc/cpp/imgui_stdlib.h"
-#include "src/engine/util/util_error_handling.h"
-#include "src/engine/util/util_load_save.h"
-#include "src/engine/util/util_draw.h"
-#include "src/engine/util/util_panning.h"
-#include "src/engine/global.h"
-
-
+#include <external/SDL2/include/SDL.h>
+#include <src/tile/tilemap.h>
+#include <external/imgui/imgui_internal.h>
+#include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
+#include <src/util/util_error_handling.h>
+#include <src/util/util_load_save.h>
+#include <src/util/util_draw.h>
+#include <src/util/util_panning.h>
+#include <src/global.h>
+#include <string>
+#include <bitset>
+#include <src/util/util_misc.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "stb/stb_image.h"
-#include <string>
 
 
+template<size_t size>
+struct TileBoundGoodPelletsPool
+{
+    Tilemap *tilemap;
+    std::bitset<size> is_active;
+
+    int first_inactive()
+    {
+        for(int i = 0; i < size; i++)
+        {
+            if(is_active[i] == false)
+            {
+                return i;
+            }
+        }
+        // Not really sure what to do yet when there are no more inactive pellets, so just going to exit
+        // Will figure out later
+        ErrorLog("Did not find any inactive pellets!");
+        exit(EXIT_FAILURE);
+    }
+
+    bool is_active_at_tile(TileIndex ti)
+    {
+        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
+        if(is_active[i])
+        {
+            return true;
+        }
+        return false;
+    }
+
+    bool set_active_at_tile(TileIndex ti)
+    {
+        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
+        is_active[i] = true;
+    }
+
+    bool set_inactive_at_tile(TileIndex ti)
+    {
+        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
+        is_active[i] = false;
+    }
+};
+
+template<size_t size>
+TileBoundGoodPelletsPool<size> TileBoundGoodPelletsPoolInit(Tilemap &tilemap)
+{
+    TileBoundGoodPelletsPool<size> pellets_pool;
+    pellets_pool.tilemap = &tilemap;
+    pellets_pool.bitset.reset();
+
+    return pellets_pool;
+}
+
+template<size_t size>
+void TilBoundGoodPelletsPoolCreatePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
+{
+    pellets_pool.is_active[ti.to_one_dim_index()] = true;
+}
+
+template<size_t size>
+void TilBoundGoodPelletsPoolRemovePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
+{
+    pellets_pool.is_active[ti.to_one_dim_index()] = false;
+}
+
+
+float wave_height = 5;
+float wave_speed = 10;
+template<size_t size>
+void TileBoundGoodPelletsPoolRender(TileBoundGoodPelletsPool<size> &pellets_pool)
+{
+    for(int i = 0; i < size; i++)
+    {
+        if(pellets_pool.is_active[i] == false)
+        {
+            continue;
+        }
+
+        TileIndex ti = {i / pellets_pool.tilemap->n_cols,
+                        i % pellets_pool.tilemap->n_cols};
+        v2d tile_center_pos = pellets_pool.tilemap->center_pos_of_tile(ti.row, ti.col);
+        v2d render_pos;
+        render_pos.x = tile_center_pos.x;
+        render_pos.y = tile_center_pos.y + sin((float)SDL_GetTicks() / 100.0f + ((float)i / 10.0f) * wave_speed) * wave_height;
+        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
+    }
+}
+
+
+#define MAX_PELLETS 1024
+struct StaticGoodPelletsPool
+{
+    std::bitset<MAX_PELLETS> is_active;
+    v2d tilemap_positions[MAX_PELLETS];
+
+
+    int first_inactive()
+    {
+       for(int i = 0; i < MAX_PELLETS; i++)
+       {
+           if(is_active[i] == false)
+           {
+               return i;
+           }
+       }
+        // Not really sure what to do yet when there are no more inactive pellets, so just going to exit
+        // Will figure out later
+        ErrorLog("Did not find any inactive pellets!");
+        exit(EXIT_FAILURE);
+    }
+
+    void init_pellet(v2d pos)
+    {
+        int i = first_inactive();
+        is_active[i] = true;
+        tilemap_positions[i] = pos;
+    }
+
+};
+
+//---------------------------------------------------
+//struct StaticGoodPelletsPoolMappedToTile
+//{
+//    StaticGoodPelletsPool *pellets_pool;
+//    std::vector<TileIndex> t
+//}
+
+
+
+StaticGoodPelletsPool StaticGoodPelletsPoolInit()
+{
+    StaticGoodPelletsPool dots_pool;
+    dots_pool.is_active.reset();
+    return dots_pool;
+}
+
+
+
+void StaticGoodPelletsPoolRender(StaticGoodPelletsPool &pellets_pool)
+{
+    for(int i = 0; i < MAX_PELLETS; i++)
+    {
+        if(pellets_pool.is_active[i] == false)
+        {
+            continue;
+        }
+        v2d render_pos;
+        render_pos.x = pellets_pool.tilemap_positions[i].x;
+        render_pos.y = pellets_pool.tilemap_positions[i].y + sin((float)SDL_GetTicks() / 100.0f + ((float)i / 10.0f) * wave_speed) * wave_height;
+        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
+    }
+}
+
+
+void StaticGoodPelletsPoolInitPelletAtPositionOfTileCenter(StaticGoodPelletsPool &pellets_pool, Tilemap &tilemap, Uint32 row, Uint32 col)
+{
+    v2d tile_center_pos = tilemap.center_pos_of_tile(row, col);
+    pellets_pool.init_pellet(tile_center_pos);
+}
+
+void StaticGoodPelletsPoolKillIfInTile(StaticGoodPelletsPool &pellets_pool, Tilemap &tilemap, TileIndex ti)
+{
+    for(int i = 0; i < MAX_PELLETS; i++)
+    {
+        if (pellets_pool.is_active[i] == false)
+        {
+            continue;
+        }
+
+        TileIndex tile_in = {static_cast<int>(pellets_pool.tilemap_positions[i].y / (float) tilemap.tile_size),
+                             static_cast<int>(pellets_pool.tilemap_positions[i].x / (float) tilemap.tile_size)};
+        if(tile_in.row == ti.row
+        && tile_in.col == ti.col)
+        {
+            pellets_pool.is_active[i] = false;
+            break;
+        }
+    }
+}
+
+
+static StaticGoodPelletsPool static_good_pellets_pool;
+
+
+//---------------------------------------------------
 ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global::window_h)};
 SDL_Texture *target_texture;
 SDL_Texture *tileset_window;
 SDL_Texture *tileset_texture;
 SDL_Color background_color = {0x6E,0x62,0x59,0xFF};
 
+enum EditMode
+{
+    EditMode_AutoTilePlacement,
+    EditMode_StaticPelletPlacement
+};
+
+static EditMode edit_mode = EditMode_AutoTilePlacement;
 
 WorldPosition tilemap_position = {0.0, 0.0};
 
-int tilemap_row_mouse_on_display = 0;
-int tilemap_col_mouse_on_display = 0;
+int tilemap_mouse_row = 0;
+int tilemap_mouse_col = 0;
 int imgui_window_mouse_x = 0;
 int imgui_window_mouse_y = 0;
 int tileset_width = 1;
@@ -73,15 +266,7 @@ std::filesystem::path assets_rel_path_prefix = "assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
-SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
-
-enum TabView
-{
-    TILEMAP_VIEW,
-    TILESET_VIEW
-};
-
 
 static bool dockSpaceOpen = true;
 
@@ -106,6 +291,8 @@ namespace Editor
                                                     (int) autotiler_window_size_current_frame.y);
 
         tileset_window = Util::Texture_Create_Blank(tileset_width, tileset_height);
+
+        static_good_pellets_pool = StaticGoodPelletsPoolInit();
     }
 
 
@@ -241,7 +428,14 @@ namespace Editor
         if (ImGui::Begin("Auto Tilemap Properties"))
         {
 
+
+
             ImGui::Text("Tile Map Properties");
+
+            ImGui::Text("Edit Mode");
+            ImGui::RadioButton("Auto Tiling Marker Placement", reinterpret_cast<int *>(&edit_mode), EditMode_AutoTilePlacement); ImGui::SameLine();
+            ImGui::RadioButton("Static Pellet Placement", reinterpret_cast<int *>(&edit_mode), EditMode_StaticPelletPlacement);
+
             ImGui::DragFloat2("Offset Position", (float *) &tilemap_position);
             ImGui::InputInt("Tile Size", (int *) &tilemap.tile_size);
             ImGui::InputInt("Num Rows", (int *) &imgui_tilemap_n_rows);
@@ -260,7 +454,7 @@ namespace Editor
             }
             ImGui::Text("Window Mouse Pos:  (%d, %d)", imgui_window_mouse_x, imgui_window_mouse_y);
             ImGui::Text("Logical Mouse Pos: (%.2f, %.2f)", logical_mouse_x, logical_mouse_y);
-            ImGui::Text("TileMap Index:     (%d, %d)", tilemap_row_mouse_on_display, tilemap_col_mouse_on_display);
+            ImGui::Text("TileMap Index:     (%d, %d)", tilemap_mouse_row, tilemap_mouse_col);
 
             if (ImGui::Button("Save TileMap"))
             {
@@ -285,7 +479,7 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::Text(assets_rel_path_prefix.string().c_str());
+            ImGui::Text("%s", assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
@@ -325,6 +519,11 @@ namespace Editor
 
         if (ImGui::Begin("Tilemap"))
         {
+            if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowHovered())
+            {
+                ImGui::SetWindowFocus("Tilemap");
+            }
+
             autotiler_window_size_previous_frame = autotiler_window_size_current_frame;
             autotiler_window_size_current_frame = ImGui::GetContentRegionAvail();
 
@@ -360,79 +559,66 @@ namespace Editor
                     &logical_mouse_x,
                     &logical_mouse_y);
 
+
             // find out what tile the mouse cursor is in because this info is useful to the user
             relative_tilemap_mouse_x = logical_mouse_x - imgui_tilemap_position.x;
             relative_tilemap_mouse_y = logical_mouse_y - imgui_tilemap_position.y;
-            if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
-            {
-                tilemap_row_mouse_on_display = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
-                tilemap_col_mouse_on_display = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
-            }
 
-            if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowHovered())
-            {
-                ImGui::SetWindowFocus("Tilemap");
-            }
+            tilemap_mouse_row = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
+            tilemap_mouse_col = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
 
-            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            if(ImGui::IsWindowFocused())
             {
-                bool tile_selected = false;
-                int row_selected;
-                int col_selected;
-
-                if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
+                if(tilemap_mouse_row >= 0 && tilemap_mouse_col >= 0
+                   && tilemap_mouse_row < tilemap.n_rows && tilemap_mouse_col < tilemap.n_cols)
                 {
-                    row_selected = static_cast<int>(round(relative_tilemap_mouse_y)) / tilemap.tile_size;
-                    col_selected = static_cast<int>(round(relative_tilemap_mouse_x)) / tilemap.tile_size;
-
-                    if (row_selected < tilemap.n_rows && col_selected < tilemap.n_cols)
+                    if (mouse_button_state_current & SDL_BUTTON_LMASK)
                     {
-                        tile_selected = true;
+
+                        if(edit_mode == EditMode_AutoTilePlacement)
+                        {
+                            Tilemap_set_collision_tile_value(&tilemap, tilemap_mouse_row, tilemap_mouse_col, true);
+                        }
+                        else if(edit_mode == EditMode_StaticPelletPlacement)
+                        {
+                            StaticGoodPelletsPoolInitPelletAtPositionOfTileCenter(static_good_pellets_pool, tilemap, tilemap_mouse_row, tilemap_mouse_col);
+                        }
+
+
+                    }
+
+                    else if (mouse_button_state_current & SDL_BUTTON_RMASK)
+                    {
+
+                        if(edit_mode == EditMode_AutoTilePlacement)
+                        {
+                            Tilemap_set_collision_tile_value(&tilemap, tilemap_mouse_row, tilemap_mouse_col, false);
+                        }
+                        else if(edit_mode == EditMode_StaticPelletPlacement)
+                        {
+                            StaticGoodPelletsPoolKillIfInTile(static_good_pellets_pool, tilemap, (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
+                        }
+
                     }
                 }
 
-                if (tile_selected)
+                if ((mouse_button_state_prev & SDL_BUTTON_MMASK))
                 {
-                    Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, true);
+                    imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
+                    imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
+
+                    panning_offset.x = imgui_window_mouse_x;
+                    panning_offset.y = imgui_window_mouse_y;
                 }
-            }
-            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
-            {
-                bool tile_selected = false;
-                int row_selected;
-                int col_selected;
-
-                if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
+                else if ((mouse_button_state_current & SDL_BUTTON_MMASK) )
                 {
-                    row_selected = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
-                    col_selected = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
-
-                    if (row_selected < tilemap.n_rows && col_selected < tilemap.n_cols)
-                    {
-                        tile_selected = true;
-                    }
+                    panning_offset.x = imgui_window_mouse_x;
+                    panning_offset.y = imgui_window_mouse_y;
                 }
 
-                if (tile_selected)
-                {
-                    Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, false);
-                }
-            }
-            else if ((mouse_button_state_prev & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
-            {
-                imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
-                imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
-
-                panning_offset.x = imgui_window_mouse_x;
-                panning_offset.y = imgui_window_mouse_y;
-            }
-            else if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
-            {
-                panning_offset.x = imgui_window_mouse_x;
-                panning_offset.y = imgui_window_mouse_y;
             }
 
-            
+
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
@@ -475,6 +661,7 @@ namespace Editor
                               imgui_tilemap_position.x,
                               imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
+            StaticGoodPelletsPoolRender(static_good_pellets_pool);
         }
         
 

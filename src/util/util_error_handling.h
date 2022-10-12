@@ -13,7 +13,7 @@
 #endif                                          // DEBUG
 
 #include <assert.h>
-#include <SDL.h>
+#include "cmake-build-debug/external/SDL2/include/SDL.h"
 
 // breaks into debug mode on false value. 
 #define ASSERT(x) if (!(x)) DEBUG_BREAK;

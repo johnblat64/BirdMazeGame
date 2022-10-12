@@ -4,7 +4,7 @@
 
 #ifndef BIRDMAZEGAMEEDITOR_GLOBAL_H
 #define BIRDMAZEGAMEEDITOR_GLOBAL_H
-#include <external/SDL2/include/SDL.h>
+#include "SDL2/include/SDL.h"
 
 
 namespace Global

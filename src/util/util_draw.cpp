@@ -1,6 +1,6 @@
-#include <external/SDL2/include/SDL.h>
-#include <src/engine/util/util_error_handling.h>
-#include <src/engine/global.h>
+#include "SDL2/include/SDL.h"
+#include "util_error_handling.h"
+#include "src/global.h"
 #include "util_draw.h"
 
 namespace Util

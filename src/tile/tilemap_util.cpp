@@ -4,9 +4,9 @@
 
 #include "tilemap.h"
 #include <vector>
-#include <src/engine/global.h>
-#include <src/engine/util/util_error_handling.h>
-#include <src/engine/util/util_draw.h>
+#include <src/global.h>
+#include <src/util/util_error_handling.h>
+#include <src/util/util_draw.h>
 
 
 bool

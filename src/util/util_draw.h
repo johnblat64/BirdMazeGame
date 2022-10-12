@@ -1,6 +1,6 @@
 #pragma once
 
-#include <external/SDL2/include/SDL.h>
+#include "SDL2/include/SDL.h"
 
 
 namespace Util

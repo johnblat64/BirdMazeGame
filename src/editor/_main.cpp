@@ -3,11 +3,11 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_sdlrenderer.h"
-#include "src/engine/tile/tilemap.h"
-#include "src/engine/util/util_draw.h"
-#include "src/engine/util/util_load_save.h"
-#include "src/engine/util/util_error_handling.h"
-#include <src/engine/global.h>
+#include <src/tile/tilemap.h>
+#include <src/util/util_draw.h>
+#include <src/util/util_load_save.h>
+#include <src/util/util_error_handling.h>
+#include "src/global.h"
 #include "editor.h"
 
 //--------------------------------------------------------

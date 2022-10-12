@@ -1,11 +1,12 @@
 #include <SDL.h>
-#include <src/engine/util/util_error_handling.h>
-#include <src/engine/global.h>
-#include <src/engine/sprite/sprite_sheet.h>
-#include "src/engine/tile/tilemap.h"
-#include "src/engine/util/util_load_save.h"
-#include <src/engine/util/util_draw.h>
+#include <src/util/util_error_handling.h>
+#include "src/global.h"
+#include <src/sprite/sprite_sheet.h>
+#include "src/tile/tilemap.h"
+#include "src/util/util_load_save.h"
+#include <src/util/util_draw.h>
 #include <math.h>
+#include <src/util/util_misc.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 

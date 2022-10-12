@@ -1,7 +1,7 @@
 #include <vector>
-#include <SDL.h>
+#include "cmake-build-debug/external/SDL2/include/SDL.h"
 #include <cassert>
-#include "src/engine/util/util_load_save.h"
+#include "util_load_save.h"
 #include <stdio.h>
 
 

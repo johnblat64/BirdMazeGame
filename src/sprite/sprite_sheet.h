@@ -1,10 +1,10 @@
 #ifndef BIRDMAZEGAME_SPRITE_SHEET_H
 #define BIRDMAZEGAME_SPRITE_SHEET_H
 
-#include <external/SDL2/include/SDL.h>
+#include "SDL2/include/SDL.h"
 #include <vector>
 #include <map>
-#include "src/engine/tile/tilemap.h"
+#include "src/tile/tilemap.h"
 
 struct SpriteSheet
 {

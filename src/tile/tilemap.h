@@ -4,9 +4,9 @@
 #include <stddef.h>
 #include <vector>
 #include <string>
-#include "../sprite/sprite_sheet.h"
+#include <src/sprite/sprite_sheet.h>
 #include <external/json/single_include/nlohmann/json.hpp>
-#include <src/engine/util/util_misc.h>
+#include <src/util/util_misc.h>
 
 const int TILE_MAP_NO_SPRITE = -1;
 
@@ -30,6 +30,11 @@ struct TileIndex
             int y, x;
         };
     };
+
+    int to_one_dim_index()
+    {
+        return two_dim_to_one_dim_index(row, col);
+    }
 };
 
 

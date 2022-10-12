@@ -5,10 +5,10 @@
 
 
 #include <vector>
-#include <external/SDL2/include/SDL.h>
-#include <src/engine/tile/tilemap.h>
-#include <src/components/components.h>
-#include <src/engine/util/util_error_handling.h>
+#include "SDL2/include/SDL.h"
+#include <src/tile/tilemap.h>
+#include "src/components/components.h"
+#include "util_error_handling.h"
 
 
 // for now, this is the data we need to start with for the world/first level
