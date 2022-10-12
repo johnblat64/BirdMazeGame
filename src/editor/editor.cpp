@@ -1,6 +1,7 @@
 #include <filesystem>
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
+#include "src/engine/tile/tileset.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
@@ -75,6 +76,8 @@ std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
+
+Tileset tileset;
 
 enum TabView
 {
@@ -298,6 +301,10 @@ namespace Editor
                 {
                     ImGui::OpenPopup("TilesetLoadError");
                 }
+                else
+                {
+                    tileset = Tileset_Init(tile_cell_size, imgui_tileset_n_rows, imgui_tileset_n_cols);
+                }
             }
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
             
@@ -494,6 +501,7 @@ namespace Editor
     void
     TilesetBitmaskerWindow()
     {
+        mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
         if (ImGui::Begin("Tileset"))
         {
 
@@ -507,10 +515,41 @@ namespace Editor
             }
 
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
+
+            imgui_window_pos = ImGui::GetCursorScreenPos();
+            imgui_window_mouse_x -= (int) imgui_window_pos.x;
+            imgui_window_mouse_y -= ((int) imgui_window_pos.y - (int) tileset_window_size_current_frame.y);
+
+
+            SDL_RenderWindowToLogical(
+                    Global::renderer,
+                    imgui_window_mouse_x,
+                    imgui_window_mouse_y,
+                    &logical_mouse_x,
+                    &logical_mouse_y);
+
+            // find out what tile the mouse cursor is in because this info is useful to the user
+            relative_tilemap_mouse_x = logical_mouse_x - imgui_tilemap_position.x;
+            relative_tilemap_mouse_y = logical_mouse_y - imgui_tilemap_position.y;
+
+            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            {
+                Tileset_Set_BitMask_Tile(tileset, relative_tilemap_mouse_x, relative_tilemap_mouse_y);
+            }
+            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
+            {
+                Tileset_Unset_BitMask_Tile(tileset, relative_tilemap_mouse_x, relative_tilemap_mouse_y);
+            }
+
+            
             Util::RenderTargetSet(Global::renderer, tileset_window);
+            
+
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
             RenderTileset(0, 0);
+            Render_Bitmask(Global::renderer, tileset);
+            
             Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
                            SDL_Color());
 
