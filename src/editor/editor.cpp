@@ -75,7 +75,7 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
-std::filesystem::path assets_rel_path_prefix = "assets/";
+std::filesystem::path assets_rel_path_prefix = "../assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
@@ -293,15 +293,16 @@ namespace Editor
 
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
-            ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+
             ImGui::Text(assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
             
+            
             if (ImGui::Button("Load Tileset"))
             {
-                bool success = TilesetLoad();
+                bool success = Tileset_Init(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tilemap_n_cols);
 
                 if (!success)
                 {
@@ -309,15 +310,23 @@ namespace Editor
                 }
                 else
                 {
-                    Tileset_Free(tileset);
-                    tileset = Tileset_Init(tile_cell_size, imgui_tileset_n_rows, imgui_tileset_n_cols);
+                    tileset_width = tileset.sprite_sheet.texture_w;
+                    tileset_height = tileset.sprite_sheet.texture_h;
                 }
+
             }
+
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
-            
+            ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
-            ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
+            if (ImGui::Button("Resize Tileset Row/Col Dimensions"))
+            {
+                Tileset_Resize_and_Shift_Values(
+                        tileset,
+                        imgui_tileset_n_rows,
+                        imgui_tileset_n_cols);
+            }
 
         }
         LoadTilesetImageResultPopupWindow();
@@ -495,13 +504,6 @@ namespace Editor
         ImGui::End();
     }
 
-    //--------------------------------------------------------
-    void RenderTileset(int x, int y)
-    {
-        SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
-
-        SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
-    }
 
 
     //--------------------------------------------------------
@@ -543,10 +545,10 @@ namespace Editor
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
-            RenderTileset(0, 0);
+            RenderTileset(Global::renderer, tileset, 0, 0);
             Bitmask_Render(Global::renderer, tileset);
             
-            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
+            Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
                            SDL_Color{100, 100, 100, 255});
 
         }
