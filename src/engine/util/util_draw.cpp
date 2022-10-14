@@ -53,6 +53,32 @@ namespace Util
         }
     }
 
+     //--------------------------------------------------------
+    void
+    DrawGrid(SDL_Renderer *renderer, Uint32 spacing_x, Uint32 spacing_y, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
+             SDL_Color color)
+    {
+        SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
+
+        Uint32 grid_h = n_rows * spacing_y;
+        Uint32 grid_w = n_cols * spacing_x;
+
+        float end_x = start_x + static_cast<float>(grid_w);
+        float end_y = start_y + static_cast<float>(grid_h);
+
+        for (Uint32 col = 0; col <= n_cols; col++)// <=  so that it draws the rightmost border
+        {
+            float x = start_x + static_cast<float>(col * spacing_x);
+            SDL_RenderDrawLineF(renderer, x, start_y, x, end_y);
+        }
+
+        for (Uint32 row = 0; row <= n_rows; row++)// <=  so that it draws the rightmost border
+        {
+            float y = start_y + static_cast<float>(row * spacing_y);
+            SDL_RenderDrawLineF(renderer, start_x, y, end_x, y);
+        }
+    }
+
     //--------------------------------------------------------
     void DrawCircleFill(SDL_Renderer *renderer, Uint32 center_x, Uint32 center_y, Uint32 radius, SDL_Color color)
     {

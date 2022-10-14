@@ -75,7 +75,7 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
-std::filesystem::path assets_rel_path_prefix = "../assets/";
+std::filesystem::path assets_rel_path_prefix = "assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
@@ -302,7 +302,7 @@ namespace Editor
             
             if (ImGui::Button("Load Tileset"))
             {
-                bool success = Tileset_Init(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tilemap_n_cols);
+                bool success = TilesetInit(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tileset_n_cols);
 
                 if (!success)
                 {
@@ -318,11 +318,12 @@ namespace Editor
 
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
             ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+            ImGui::Text("Tileset Tile Width: %f\t Tile Height: %f)", tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height());
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
             if (ImGui::Button("Resize Tileset Row/Col Dimensions"))
             {
-                Tileset_Resize_and_Shift_Values(
+                TilesetResizeandShiftValues(
                         tileset,
                         imgui_tileset_n_rows,
                         imgui_tileset_n_cols);
@@ -532,11 +533,11 @@ namespace Editor
 
             if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
             {
-                Tileset_Set_BitMask_Tile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+                TilesetSetBitMaskTile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             }
             else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
             {
-                Tileset_Unset_BitMask_Tile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+                TilesetUnsetBitMaskTile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             }
 
             
@@ -546,9 +547,9 @@ namespace Editor
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
             RenderTileset(Global::renderer, tileset, 0, 0);
-            Bitmask_Render(Global::renderer, tileset);
+            BitmaskRender(Global::renderer, tileset);
             
-            Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
+            Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
                            SDL_Color{100, 100, 100, 255});
 
         }
