@@ -13,18 +13,22 @@ TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
     };
     int row_tile_clicked = mouse_y / tileset.sprite_sheet.cell_height();
     int col_tile_clicked = mouse_x / tileset.sprite_sheet.cell_width();
-
+    
     if (row_tile_clicked < tileset.sprite_sheet.n_rows && col_tile_clicked < tileset.sprite_sheet.n_cols)
     {
-        int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_height();
-        int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_width();
+        int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_width();
+        int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_height();
 
-        int bit_cell_size = tileset.sprite_sheet.cell_height() / 3;
+        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / 3;
+        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / 3;
+
         int relative_mouse_x = mouse_x - tile_location_x;
         int relative_mouse_y = mouse_y - tile_location_y;
 
-        int bit_clicked_row = relative_mouse_y / bit_cell_size;
-        int bit_clicked_col = relative_mouse_x / bit_cell_size;
+        int bit_clicked_row = relative_mouse_y / bit_cell_size_height;
+        int bit_clicked_col = relative_mouse_x / bit_cell_size_width;
+
+
         bit_clicked_row = bit_clicked_row > 2 ? 2 : bit_clicked_row;
         bit_clicked_col = bit_clicked_col > 2 ? 2 : bit_clicked_col;
         
@@ -49,15 +53,20 @@ TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
 
     if (row_tile_clicked < tileset.sprite_sheet.n_rows && col_tile_clicked < tileset.sprite_sheet.n_cols)
     {
-        int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_height();
-        int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_width();
+        int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_width();
+        int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_height();
 
-        int bit_cell_size = tileset.sprite_sheet.cell_height() / 3;
+        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / 3;
+        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / 3;
+
         int relative_mouse_x = mouse_x - tile_location_x;
         int relative_mouse_y = mouse_y - tile_location_y;
 
-        int bit_clicked_row = relative_mouse_y / bit_cell_size;
-        int bit_clicked_col = relative_mouse_x / bit_cell_size;
+        int bit_clicked_row = relative_mouse_y / bit_cell_size_height;
+        int bit_clicked_col = relative_mouse_x / bit_cell_size_width;
+
+        bit_clicked_row = bit_clicked_row > 2 ? 2 : bit_clicked_row;
+        bit_clicked_col = bit_clicked_col > 2 ? 2 : bit_clicked_col;
 
         Uint8 clicked_bit_value = bitmask_cell_values[bit_clicked_row][bit_clicked_col];
         Uint8 current_bitmask_value = tileset.bitmask_get_element(row_tile_clicked, col_tile_clicked);
@@ -174,9 +183,7 @@ void
 RenderTileset(SDL_Renderer *renderer, Tileset tileset, int x, int y)
 {
     SDL_Rect renderQuad = {x, y, tileset.sprite_sheet.texture_w, tileset.sprite_sheet.texture_h};
-    //SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
 
-    //SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
     SDL_RenderCopy(renderer, tileset.sprite_sheet.texture, NULL, &renderQuad);
 }
 

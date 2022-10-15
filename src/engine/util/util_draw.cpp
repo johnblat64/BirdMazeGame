@@ -55,16 +55,16 @@ namespace Util
 
      //--------------------------------------------------------
     void
-    DrawGrid(SDL_Renderer *renderer, Uint32 spacing_x, Uint32 spacing_y, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
+    DrawGrid(SDL_Renderer *renderer, float spacing_x, float spacing_y, float start_x, float start_y, Uint32 n_rows, Uint32 n_cols,
              SDL_Color color)
     {
         SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, color.r, color.g, color.b, color.a));
 
-        Uint32 grid_h = n_rows * spacing_y;
-        Uint32 grid_w = n_cols * spacing_x;
+        float grid_h = n_rows * spacing_y;
+        float grid_w = n_cols * spacing_x;
 
-        float end_x = start_x + static_cast<float>(grid_w);
-        float end_y = start_y + static_cast<float>(grid_h);
+        float end_x = start_x + grid_w;
+        float end_y = start_y + grid_h;
 
         for (Uint32 col = 0; col <= n_cols; col++)// <=  so that it draws the rightmost border
         {
