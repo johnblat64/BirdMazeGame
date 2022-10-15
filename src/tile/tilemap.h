@@ -7,6 +7,7 @@
 #include <src/sprite/sprite_sheet.h>
 #include <external/json/single_include/nlohmann/json.hpp>
 #include <src/util/util_misc.h>
+#include <src/tile/tilemap.h>
 
 const int TILE_MAP_NO_SPRITE = -1;
 
@@ -16,6 +17,9 @@ const int TILE_MAP_NO_SPRITE = -1;
 #define MAX_ROWS_ALLOWED 100
 #define MAX_COLS_ALLOWED 100
 
+
+int
+two_dim_to_one_dim_index(int row, int col, int n_cols);
 
 struct TileIndex
 {
@@ -31,9 +35,9 @@ struct TileIndex
         };
     };
 
-    int to_one_dim_index()
+    int to_one_dim_index(Uint32 n_cols)
     {
-        return two_dim_to_one_dim_index(row, col);
+        return two_dim_to_one_dim_index(row, col, n_cols);
     }
 };
 
@@ -71,8 +75,7 @@ struct Tilemap
     }
 };
 
-int
-two_dim_to_one_dim_index(int row, int col, int n_cols);
+
 
 Tilemap
 Tilemap_init(Uint32 tile_size, Uint32 n_rows, Uint32 n_cols);

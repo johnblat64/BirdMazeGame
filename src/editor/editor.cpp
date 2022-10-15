@@ -75,13 +75,13 @@ TileBoundGoodPelletsPool<size> TileBoundGoodPelletsPoolInit(Tilemap &tilemap)
 template<size_t size>
 void TilBoundGoodPelletsPoolCreatePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
 {
-    pellets_pool.is_active[ti.to_one_dim_index()] = true;
+    pellets_pool.is_active[ti.to_one_dim_index(pellets_pool.tilemap->n_cols)] = true;
 }
 
 template<size_t size>
 void TilBoundGoodPelletsPoolRemovePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
 {
-    pellets_pool.is_active[ti.to_one_dim_index()] = false;
+    pellets_pool.is_active[ti.to_one_dim_index(pellets_pool.tilemap->n_cols)] = false;
 }
 
 
