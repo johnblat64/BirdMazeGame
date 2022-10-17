@@ -1,6 +1,7 @@
 #include <filesystem>
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
+#include "src/engine/tile/tileset.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
@@ -31,6 +32,8 @@ int tilemap_row_mouse_on_display = 0;
 int tilemap_col_mouse_on_display = 0;
 int imgui_window_mouse_x = 0;
 int imgui_window_mouse_y = 0;
+int imgui_tileset_window_mouse_x = 0;
+int imgui_tileset_window_mouse_y = 0;
 int tileset_width = 1;
 int tileset_height = 1;
 int tileset_channels = 0;
@@ -38,6 +41,8 @@ float logical_mouse_x = 0;
 float logical_mouse_y = 0;
 float relative_tilemap_mouse_x;
 float relative_tilemap_mouse_y;
+float relative_tileset_mouse_x;
+float relative_tileset_mouse_y;
 v2d panning_offset = {0, 0};
 v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
 v2d imgui_axis_position = {0, 0};
@@ -51,6 +56,7 @@ ImVec2 autotiler_window_size_current_frame;
 ImVec2 tileset_window_size_previous_frame;
 ImVec2 tileset_window_size_current_frame;
 ImVec2 imgui_window_pos;
+ImVec2 imgui_tileset_window_pos;
 ImVec2 window_center_popup{(Global::window_w / 2.0f) - 150.0f, (Global::window_h / 2.0f) - 100.0f};
 ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
@@ -60,8 +66,8 @@ Uint32 imgui_tilemap_n_rows;
 Uint32 imgui_tilemap_n_cols;
 Uint32 imgui_save_notification_duration_ms = 3000;
 Uint32 imgui_save_notification_timer = 0;
-Uint32 imgui_tileset_n_rows = 8;
-Uint32 imgui_tileset_n_cols = 20;
+Uint32 imgui_tileset_n_rows = 5;
+Uint32 imgui_tileset_n_cols = 10;
 Uint32 tile_cell_size;
 Uint32 mouse_button_state_current;
 Uint32 mouse_button_state_prev;
@@ -75,6 +81,8 @@ std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
+
+Tileset tileset;
 
 enum TabView
 {
@@ -276,6 +284,7 @@ namespace Editor
                 imgui_save_notification_timer = imgui_save_notification_duration_ms;
             }
 
+
             if (imgui_save_notification_timer > 0)
             {
                 imgui_save_notification_timer -= Global::delta_time_ms;
@@ -290,20 +299,35 @@ namespace Editor
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
             
+            
             if (ImGui::Button("Load Tileset"))
             {
-                bool success = TilesetLoad();
+                bool success = TilesetInit(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tileset_n_cols);
 
                 if (!success)
                 {
                     ImGui::OpenPopup("TilesetLoadError");
                 }
+                else
+                {
+                    tileset_width = tileset.sprite_sheet.texture_w;
+                    tileset_height = tileset.sprite_sheet.texture_h;
+                }
+
             }
+
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
-            
+            ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+            ImGui::Text("Tileset Tile Width: %f\t Tile Height: %f)", tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height());
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
-            ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
+            if (ImGui::Button("Resize Tileset Row/Col Dimensions"))
+            {
+                TilesetResizeandShiftValues(
+                        tileset,
+                        imgui_tileset_n_rows,
+                        imgui_tileset_n_cols);
+            }
 
         }
         LoadTilesetImageResultPopupWindow();
@@ -481,19 +505,13 @@ namespace Editor
         ImGui::End();
     }
 
-    //--------------------------------------------------------
-    void RenderTileset(int x, int y)
-    {
-        SDL_Rect renderQuad = {x, y, tileset_width, tileset_height};
-
-        SDL_RenderCopy(Global::renderer, tileset_texture, NULL, &renderQuad);
-    }
 
 
     //--------------------------------------------------------
     void
     TilesetBitmaskerWindow()
     {
+        mouse_button_state_current = SDL_GetMouseState(&imgui_tileset_window_mouse_x, &imgui_tileset_window_mouse_y);
         if (ImGui::Begin("Tileset"))
         {
 
@@ -507,12 +525,32 @@ namespace Editor
             }
 
             ImGui::Image(tileset_window, tileset_window_size_current_frame);
+
+            imgui_tileset_window_pos = ImGui::GetCursorScreenPos();
+            imgui_tileset_window_mouse_x -= (int) imgui_tileset_window_pos.x;
+            imgui_tileset_window_mouse_y -= ((int) imgui_tileset_window_pos.y - (int) tileset_window_size_current_frame.y);
+
+
+            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            {
+                TilesetSetBitMaskTile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+            }
+            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
+            {
+                TilesetUnsetBitMaskTile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+            }
+
+            
             Util::RenderTargetSet(Global::renderer, tileset_window);
+            
+
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
-            RenderTileset(0, 0);
-            Util::DrawGrid(Global::renderer, tile_cell_size, 0, 0, imgui_tileset_n_rows, imgui_tileset_n_cols,
-                           SDL_Color());
+            RenderTileset(Global::renderer, tileset, 0, 0);
+            BitmaskRender(Global::renderer, tileset);
+            
+            Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
+                           SDL_Color{100, 100, 100, 255});
 
         }
         ImGui::End();

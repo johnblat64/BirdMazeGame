@@ -4,6 +4,7 @@
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_sdlrenderer.h"
 #include "src/engine/tile/tilemap.h"
+#include "src/engine/tile/tileset.h"
 #include "src/engine/util/util_draw.h"
 #include "src/engine/util/util_load_save.h"
 #include "src/engine/util/util_error_handling.h"
@@ -39,6 +40,7 @@ EditorSDLSetup()
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
     SDLErrorHandleNull(Global::renderer);
+    SDLErrorHandle(SDL_SetRenderDrawBlendMode(Global::renderer, SDL_BLENDMODE_BLEND));
 
 }
 
