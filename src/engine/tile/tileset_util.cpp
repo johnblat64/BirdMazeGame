@@ -3,6 +3,7 @@
 #include "stb/stb_image.h"
 #include <src/engine/util/util_error_handling.h>
 
+static int BIT_CELL_NUM = 3;
 void 
 TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
 {
@@ -19,8 +20,8 @@ TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
         int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_width();
         int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_height();
 
-        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / 3;
-        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / 3;
+        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / BIT_CELL_NUM;
+        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / BIT_CELL_NUM;
 
         int relative_mouse_x = mouse_x - tile_location_x;
         int relative_mouse_y = mouse_y - tile_location_y;
@@ -28,9 +29,8 @@ TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
         int bit_clicked_row = relative_mouse_y / bit_cell_size_height;
         int bit_clicked_col = relative_mouse_x / bit_cell_size_width;
 
-
-        bit_clicked_row = bit_clicked_row > 2 ? 2 : bit_clicked_row;
-        bit_clicked_col = bit_clicked_col > 2 ? 2 : bit_clicked_col;
+        bit_clicked_row = bit_clicked_row > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_row;
+        bit_clicked_col = bit_clicked_col > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_col;
         
         Uint8 clicked_bit_value = bitmask_cell_values[bit_clicked_row][bit_clicked_col];
         Uint8 current_bitmask_value =  tileset.bitmask_get_element(row_tile_clicked, col_tile_clicked);
@@ -56,8 +56,8 @@ TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
         int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_width();
         int tile_location_y = row_tile_clicked * tileset.sprite_sheet.cell_height();
 
-        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / 3;
-        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / 3;
+        int bit_cell_size_height = tileset.sprite_sheet.cell_height() / BIT_CELL_NUM;
+        int bit_cell_size_width = tileset.sprite_sheet.cell_width() / BIT_CELL_NUM;
 
         int relative_mouse_x = mouse_x - tile_location_x;
         int relative_mouse_y = mouse_y - tile_location_y;
@@ -65,8 +65,8 @@ TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
         int bit_clicked_row = relative_mouse_y / bit_cell_size_height;
         int bit_clicked_col = relative_mouse_x / bit_cell_size_width;
 
-        bit_clicked_row = bit_clicked_row > 2 ? 2 : bit_clicked_row;
-        bit_clicked_col = bit_clicked_col > 2 ? 2 : bit_clicked_col;
+        bit_clicked_row = bit_clicked_row > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_row;
+        bit_clicked_col = bit_clicked_col > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_col;
 
         Uint8 clicked_bit_value = bitmask_cell_values[bit_clicked_row][bit_clicked_col];
         Uint8 current_bitmask_value = tileset.bitmask_get_element(row_tile_clicked, col_tile_clicked);
@@ -132,9 +132,8 @@ BitmaskRender(SDL_Renderer *renderer, Tileset tileset)
     SDL_FRect visual_bitmask_rect;
 
     Uint8 current_tile_bitmask;
-    int tile_num = 3;
-    float bit_rect_h_size = tileset.sprite_sheet.cell_height() / tile_num;
-    float bit_rect_w_size = tileset.sprite_sheet.cell_width() / tile_num;
+    float bit_rect_h_size = tileset.sprite_sheet.cell_height() / BIT_CELL_NUM;
+    float bit_rect_w_size = tileset.sprite_sheet.cell_width() / BIT_CELL_NUM;
     visual_bitmask_rect.w = bit_rect_w_size;
     visual_bitmask_rect.h = bit_rect_h_size;
     SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 120);
@@ -156,19 +155,19 @@ BitmaskRender(SDL_Renderer *renderer, Tileset tileset)
                 tileset_index = i >= 4 ? i + 1 : i;
                 if ((value & current_tile_bitmask) == value) 
                 {
-                    if (tileset_index >= 0 && tileset_index < tile_num)
+                    if (tileset_index >= 0 && tileset_index < BIT_CELL_NUM)
                     {
-                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % tile_num) * bit_rect_w_size);
+                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % BIT_CELL_NUM) * bit_rect_w_size);
                         visual_bitmask_rect.y = bit_rect_y ;
                     }
-                    else if (tileset_index >= tile_num && tileset_index < tile_num * 2)
+                    else if (tileset_index >= BIT_CELL_NUM && tileset_index < BIT_CELL_NUM * 2)
                     {
-                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % tile_num) * bit_rect_w_size);
+                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % BIT_CELL_NUM) * bit_rect_w_size);
                         visual_bitmask_rect.y = bit_rect_y + bit_rect_h_size;
                     }
-                    else if (tileset_index >= tile_num * 2 && tileset_index < tile_num * 3)
+                    else if (tileset_index >= BIT_CELL_NUM * 2 && tileset_index < BIT_CELL_NUM * 3)
                     {
-                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % tile_num) * bit_rect_w_size);
+                        visual_bitmask_rect.x = bit_rect_x + ((tileset_index % BIT_CELL_NUM) * bit_rect_w_size);
                         visual_bitmask_rect.y = bit_rect_y + bit_rect_h_size * 2;
                     }
                     SDL_RenderFillRectF(renderer, &visual_bitmask_rect);
