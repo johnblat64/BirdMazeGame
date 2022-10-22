@@ -12,196 +12,16 @@
 #include <string>
 #include <bitset>
 #include <src/util/util_misc.h>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "stb/stb_image.h"
 
 
-template<size_t size>
-struct TileBoundGoodPelletsPool
-{
-    Tilemap *tilemap;
-    std::bitset<size> is_active;
 
-    int first_inactive()
-    {
-        for(int i = 0; i < size; i++)
-        {
-            if(is_active[i] == false)
-            {
-                return i;
-            }
-        }
-        // Not really sure what to do yet when there are no more inactive pellets, so just going to exit
-        // Will figure out later
-        ErrorLog("Did not find any inactive pellets!");
-        exit(EXIT_FAILURE);
-    }
-
-    bool is_active_at_tile(TileIndex ti)
-    {
-        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
-        if(is_active[i])
-        {
-            return true;
-        }
-        return false;
-    }
-
-    bool set_active_at_tile(TileIndex ti)
-    {
-        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
-        is_active[i] = true;
-    }
-
-    bool set_inactive_at_tile(TileIndex ti)
-    {
-        int i = two_dim_to_one_dim_index(ti.row, ti.col, tilemap->n_cols);
-        is_active[i] = false;
-    }
-};
-
-template<size_t size>
-TileBoundGoodPelletsPool<size> TileBoundGoodPelletsPoolInit(Tilemap &tilemap)
-{
-    TileBoundGoodPelletsPool<size> pellets_pool;
-    pellets_pool.tilemap = &tilemap;
-    pellets_pool.bitset.reset();
-
-    return pellets_pool;
-}
-
-template<size_t size>
-void TilBoundGoodPelletsPoolCreatePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
-{
-    pellets_pool.is_active[ti.to_one_dim_index(pellets_pool.tilemap->n_cols)] = true;
-}
-
-template<size_t size>
-void TilBoundGoodPelletsPoolRemovePellet(TileBoundGoodPelletsPool<size> pellets_pool, TileIndex ti)
-{
-    pellets_pool.is_active[ti.to_one_dim_index(pellets_pool.tilemap->n_cols)] = false;
-}
-
-
-float wave_height = 5;
-float wave_speed = 10;
-template<size_t size>
-void TileBoundGoodPelletsPoolRender(TileBoundGoodPelletsPool<size> &pellets_pool)
-{
-    for(int i = 0; i < size; i++)
-    {
-        if(pellets_pool.is_active[i] == false)
-        {
-            continue;
-        }
-
-        TileIndex ti = {i / pellets_pool.tilemap->n_cols,
-                        i % pellets_pool.tilemap->n_cols};
-        v2d tile_center_pos = pellets_pool.tilemap->center_pos_of_tile(ti.row, ti.col);
-        v2d render_pos;
-        render_pos.x = tile_center_pos.x;
-        render_pos.y = tile_center_pos.y + sin((float)SDL_GetTicks() / 100.0f + ((float)i / 10.0f) * wave_speed) * wave_height;
-        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
-    }
-}
-
-
-#define MAX_PELLETS 1024
-struct StaticGoodPelletsPool
-{
-    std::bitset<MAX_PELLETS> is_active;
-    v2d tilemap_positions[MAX_PELLETS];
-
-
-    int first_inactive()
-    {
-       for(int i = 0; i < MAX_PELLETS; i++)
-       {
-           if(is_active[i] == false)
-           {
-               return i;
-           }
-       }
-        // Not really sure what to do yet when there are no more inactive pellets, so just going to exit
-        // Will figure out later
-        ErrorLog("Did not find any inactive pellets!");
-        exit(EXIT_FAILURE);
-    }
-
-    void init_pellet(v2d pos)
-    {
-        int i = first_inactive();
-        is_active[i] = true;
-        tilemap_positions[i] = pos;
-    }
-
-};
-
-//---------------------------------------------------
-//struct StaticGoodPelletsPoolMappedToTile
-//{
-//    StaticGoodPelletsPool *pellets_pool;
-//    std::vector<TileIndex> t
-//}
-
-
-
-StaticGoodPelletsPool StaticGoodPelletsPoolInit()
-{
-    StaticGoodPelletsPool dots_pool;
-    dots_pool.is_active.reset();
-    return dots_pool;
-}
-
-
-
-void StaticGoodPelletsPoolRender(StaticGoodPelletsPool &pellets_pool)
-{
-    for(int i = 0; i < MAX_PELLETS; i++)
-    {
-        if(pellets_pool.is_active[i] == false)
-        {
-            continue;
-        }
-        v2d render_pos;
-        render_pos.x = pellets_pool.tilemap_positions[i].x;
-        render_pos.y = pellets_pool.tilemap_positions[i].y + sin((float)SDL_GetTicks() / 100.0f + ((float)i / 10.0f) * wave_speed) * wave_height;
-        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
-    }
-}
-
-
-void StaticGoodPelletsPoolInitPelletAtPositionOfTileCenter(StaticGoodPelletsPool &pellets_pool, Tilemap &tilemap, Uint32 row, Uint32 col)
-{
-    v2d tile_center_pos = tilemap.center_pos_of_tile(row, col);
-    pellets_pool.init_pellet(tile_center_pos);
-}
-
-void StaticGoodPelletsPoolKillIfInTile(StaticGoodPelletsPool &pellets_pool, Tilemap &tilemap, TileIndex ti)
-{
-    for(int i = 0; i < MAX_PELLETS; i++)
-    {
-        if (pellets_pool.is_active[i] == false)
-        {
-            continue;
-        }
-
-        TileIndex tile_in = {static_cast<int>(pellets_pool.tilemap_positions[i].y / (float) tilemap.tile_size),
-                             static_cast<int>(pellets_pool.tilemap_positions[i].x / (float) tilemap.tile_size)};
-        if(tile_in.row == ti.row
-        && tile_in.col == ti.col)
-        {
-            pellets_pool.is_active[i] = false;
-            break;
-        }
-    }
-}
-
-
-static StaticGoodPelletsPool static_good_pellets_pool;
-
+TileBoundGoodPelletsPool tile_bound_good_pellets_pool;
 
 //---------------------------------------------------
 ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global::window_h)};
@@ -292,7 +112,7 @@ namespace Editor
 
         tileset_window = Util::Texture_Create_Blank(tileset_width, tileset_height);
 
-        static_good_pellets_pool = StaticGoodPelletsPoolInit();
+        tile_bound_good_pellets_pool = TileBoundGoodPelletsPoolInit(tilemap);
     }
 
 
@@ -581,7 +401,8 @@ namespace Editor
                         }
                         else if(edit_mode == EditMode_StaticPelletPlacement)
                         {
-                            StaticGoodPelletsPoolInitPelletAtPositionOfTileCenter(static_good_pellets_pool, tilemap, tilemap_mouse_row, tilemap_mouse_col);
+                            TilBoundGoodPelletsPoolCreatePellet(tile_bound_good_pellets_pool,
+                                                                (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
                         }
 
 
@@ -596,7 +417,8 @@ namespace Editor
                         }
                         else if(edit_mode == EditMode_StaticPelletPlacement)
                         {
-                            StaticGoodPelletsPoolKillIfInTile(static_good_pellets_pool, tilemap, (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
+                            TilBoundGoodPelletsPoolRemovePellet(tile_bound_good_pellets_pool,
+                                                                (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
                         }
 
                     }
@@ -661,7 +483,7 @@ namespace Editor
                               imgui_tilemap_position.x,
                               imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
-            StaticGoodPelletsPoolRender(static_good_pellets_pool);
+            TileBoundGoodPelletsPoolRender(tile_bound_good_pellets_pool, imgui_tilemap_position);
         }
         
 

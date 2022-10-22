@@ -415,6 +415,12 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 
 //-----------------------------------------------------------------------------------------------
 void
+PlayerCollectTileBoundPellets(Player &player, Tile)
+
+
+
+//-----------------------------------------------------------------------------------------------
+void
 PlayerRenderDebugCurrentRect(Player &player, Tilemap tilemap)
 {
     TileIndex player_curr_tile_index = player.current_tile(tilemap);

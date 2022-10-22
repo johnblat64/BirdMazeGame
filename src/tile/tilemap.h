@@ -62,6 +62,11 @@ struct Tilemap
         return tile_size * n_rows;
     }
 
+    size_t n_tiles()
+    {
+        return n_rows * n_cols;
+    }
+
     v2d center_pos_of_tile(int tile_row, int tile_col)
     {
         int tile_start_pos_x = tile_col * tile_size;
