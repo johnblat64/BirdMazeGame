@@ -10,7 +10,6 @@
 #include <src/util/util_panning.h>
 #include <src/global.h>
 #include <string>
-#include <bitset>
 #include <src/util/util_misc.h>
 #include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 
@@ -20,8 +19,6 @@
 #include "stb/stb_image.h"
 
 
-
-TileBoundGoodPelletsPool tile_bound_good_pellets_pool;
 
 //---------------------------------------------------
 ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global::window_h)};
@@ -72,7 +69,7 @@ bool layout_initialized = false;
 Uint32 imgui_tilemap_n_rows;
 Uint32 imgui_tilemap_n_cols;
 Uint32 imgui_save_notification_duration_ms = 3000;
-Uint32 imgui_save_notification_timer = 0;
+int imgui_save_notification_timer = 0;
 Uint32 imgui_tileset_n_rows = 8;
 Uint32 imgui_tileset_n_cols = 20;
 Uint32 tile_cell_size;
@@ -111,8 +108,6 @@ namespace Editor
                                                     (int) autotiler_window_size_current_frame.y);
 
         tileset_window = Util::Texture_Create_Blank(tileset_width, tileset_height);
-
-        tile_bound_good_pellets_pool = TileBoundGoodPelletsPoolInit(tilemap);
     }
 
 
@@ -242,7 +237,7 @@ namespace Editor
 
     //-----------------------------------------------------------
     void
-    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap)
+    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
     {
 
         if (ImGui::Begin("Auto Tilemap Properties"))
@@ -278,8 +273,10 @@ namespace Editor
 
             if (ImGui::Button("Save TileMap"))
             {
-                bool success = Tilemap_save_to_file("tilemap.json", tilemap);
-                if (success)
+                bool tilemap_save_success = Tilemap_save_to_file("tilemap.json", tilemap);
+                bool pellets_save_success = TileBoundGoodPelletsPoolSaveToFile("tileboundgoodpelletspool.json", pellets_pool);
+
+                if (tilemap_save_success && pellets_save_success)
                 {
                     imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_success;
                 }
@@ -329,7 +326,7 @@ namespace Editor
 
     //--------------------------------------------------------
     void
-    TilemapAutoTilerWindow(Tilemap &tilemap)
+    TilemapAutoTilerWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
     {
         mouse_button_state_prev = mouse_button_state_current;
         mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
@@ -401,8 +398,8 @@ namespace Editor
                         }
                         else if(edit_mode == EditMode_StaticPelletPlacement)
                         {
-                            TilBoundGoodPelletsPoolCreatePellet(tile_bound_good_pellets_pool,
-                                                                (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
+                            TilBoundGoodPelletsPoolCreatePellet(pellets_pool, tilemap,
+                                                                (TileIndex) {tilemap_mouse_row, tilemap_mouse_col});
                         }
 
 
@@ -417,8 +414,8 @@ namespace Editor
                         }
                         else if(edit_mode == EditMode_StaticPelletPlacement)
                         {
-                            TilBoundGoodPelletsPoolRemovePellet(tile_bound_good_pellets_pool,
-                                                                (TileIndex){tilemap_mouse_row, tilemap_mouse_col});
+                            TilBoundGoodPelletsPoolRemovePellet(pellets_pool, tilemap,
+                                                                (TileIndex) {tilemap_mouse_row, tilemap_mouse_col});
                         }
 
                     }
@@ -483,7 +480,7 @@ namespace Editor
                               imgui_tilemap_position.x,
                               imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
-            TileBoundGoodPelletsPoolRender(tile_bound_good_pellets_pool, imgui_tilemap_position);
+            TileBoundGoodPelletsPoolRender(pellets_pool, tilemap, imgui_tilemap_position);
         }
         
 
@@ -529,7 +526,7 @@ namespace Editor
 
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap)
+    void EditorWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
     {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -548,9 +545,9 @@ namespace Editor
 
         DockSpaceSetup();
         MenuBar();
-        TilemapAutoTilerWindow(tilemap);
+        TilemapAutoTilerWindow(tilemap, pellets_pool);
         TilesetBitmaskerWindow();
-        TilemapAndTilesetPropertiesPanelWindow(tilemap);
+        TilemapAndTilesetPropertiesPanelWindow(tilemap, pellets_pool);
 
         ImGui::PopStyleVar();
         ImGui::End();

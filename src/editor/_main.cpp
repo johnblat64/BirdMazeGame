@@ -4,6 +4,7 @@
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_sdlrenderer.h"
 #include <src/tile/tilemap.h>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 #include <src/util/util_draw.h>
 #include <src/util/util_load_save.h>
 #include <src/util/util_error_handling.h>
@@ -66,14 +67,27 @@ int
 main(int argc, char *argv[])
 {
     Tilemap tilemap;
-    LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
+    TileBoundGoodPelletsPool pellets_pool;
+    LoadFileResult tilemap_load_result = Tilemap_load_from_file("tilemap.json", tilemap);
 
-    if (load_result == LOAD_FILE_NOT_FOUND)
+    if (tilemap_load_result == LOAD_FILE_NOT_FOUND)
     {
         // just initialize it to something
         tilemap = Tilemap_init(30, 25, 25);
     }
-    else if (load_result == LOAD_FULL_BYTES_NOT_READ)
+    else if (tilemap_load_result == LOAD_FULL_BYTES_NOT_READ)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+    LoadFileResult pellets_pool_load_result = TileBoundGoodPelletsPoolLoadFromFile("tileboundgoodpelletspool.json", pellets_pool);
+
+    if (pellets_pool_load_result == LOAD_FILE_NOT_FOUND)
+    {
+        // just initialize it to something
+        pellets_pool = TileBoundGoodPelletsPoolInit(tilemap.n_tiles());
+    }
+    else if (pellets_pool_load_result == LOAD_FULL_BYTES_NOT_READ)
     {
         exit(EXIT_FAILURE);
     }
@@ -120,7 +134,7 @@ main(int argc, char *argv[])
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        Editor::EditorWindow(tilemap);
+        Editor::EditorWindow(tilemap, pellets_pool);
 
 
         Util::RenderTargetSet(Global::renderer, NULL);

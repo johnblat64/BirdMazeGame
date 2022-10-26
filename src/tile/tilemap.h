@@ -39,6 +39,11 @@ struct TileIndex
     {
         return two_dim_to_one_dim_index(row, col, n_cols);
     }
+
+    bool equals(TileIndex other)
+    {
+        return (row == other.row && col == other.col);
+    }
 };
 
 

@@ -1,4 +1,5 @@
-#include <SDL.h>
+#include <bitset>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 #include <src/util/util_error_handling.h>
 #include "src/global.h"
 #include <src/sprite/sprite_sheet.h>
@@ -8,10 +9,10 @@
 #include <math.h>
 #include <src/util/util_misc.h>
 
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <external/stb/stb_image.h>
-#include <bitset>
 
 
 //----------------------------------
@@ -415,7 +416,10 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 
 //-----------------------------------------------------------------------------------------------
 void
-PlayerCollectTileBoundPellets(Player &player, Tile)
+PlayerCollectTileBoundPellets(Player &player, TileBoundGoodPelletsPool &pellets_pool)
+{
+    pellets_pool.is_active_at_tile(player.current_tile(*pellets_pool.tilemap));
+}
 
 
 
