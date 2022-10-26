@@ -75,6 +75,10 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
+char *imgui_tileset_save_notification_text;
+char *imgui_tileset_save_notification_text_success = (char *) "Saved Successfully!";
+char *imgui_tileset_save_notification_text_failure = (char *) "Save Failed!!!!";
+
 std::filesystem::path assets_rel_path_prefix = "assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
@@ -82,7 +86,6 @@ std::string full_image_file_path;
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
 
-Tileset tileset;
 
 enum TabView
 {
@@ -243,7 +246,7 @@ namespace Editor
 
     //-----------------------------------------------------------
     void
-    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap)
+    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, Tileset &tileset)
     {
 
         if (ImGui::Begin("Auto Tilemap Properties"))
@@ -299,10 +302,12 @@ namespace Editor
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
             
+
+            
             
             if (ImGui::Button("Load Tileset"))
             {
-                bool success = TilesetInit(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tileset_n_cols);
+                bool success = TilesetCreateNewTextureandTileset(Global::renderer, tileset, assets_rel_path_prefix.string() + input_text_image_file_path, imgui_tileset_n_rows, imgui_tileset_n_cols);
 
                 if (!success)
                 {
@@ -329,6 +334,27 @@ namespace Editor
                         imgui_tileset_n_cols);
             }
 
+
+            if (ImGui::Button("Save Tileset"))
+            {
+                bool success = TilesetSaveToFile("tileset.json", tileset);
+                if (success)
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_success;
+                    
+                }
+                else
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_failure;
+                }
+                imgui_save_notification_timer = imgui_save_notification_duration_ms;
+            }
+
+            if (imgui_save_notification_timer > 0)
+            {
+                imgui_save_notification_timer -= Global::delta_time_ms;
+                ImGui::Text("%s\n", imgui_tileset_save_notification_text);
+            }
         }
         LoadTilesetImageResultPopupWindow();
         ImGui::End();
@@ -505,12 +531,34 @@ namespace Editor
         ImGui::End();
     }
 
+    //--------------------------------------------------------
+    void
+    TilesetLoadFromJson(Tileset& tileset)
+    {
+        if (!tileset.initialized)
+        {
+            bool success = TilesetLoadTilesetTexture(Global::renderer, tileset, assets_rel_path_prefix.string() + tileset.file_name);
+
+            if (!success)
+            {
+                ImGui::OpenPopup("TilesetLoadError");
+            }
+            else
+            {
+                tileset_width = tileset.sprite_sheet.texture_w;
+                tileset_height = tileset.sprite_sheet.texture_h;
+                imgui_tileset_n_rows = tileset.sprite_sheet.n_rows;
+                imgui_tileset_n_cols = tileset.sprite_sheet.n_cols;
+            }
+        }
+    }
 
 
     //--------------------------------------------------------
     void
-    TilesetBitmaskerWindow()
+    TilesetBitmaskerWindow(Tileset &tileset)
     {
+        
         mouse_button_state_current = SDL_GetMouseState(&imgui_tileset_window_mouse_x, &imgui_tileset_window_mouse_y);
         if (ImGui::Begin("Tileset"))
         {
@@ -546,6 +594,7 @@ namespace Editor
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
+            TilesetLoadFromJson(tileset);
             RenderTileset(Global::renderer, tileset, 0, 0);
             BitmaskRender(Global::renderer, tileset);
             
@@ -558,7 +607,7 @@ namespace Editor
 
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap)
+    void EditorWindow(Tilemap &tilemap, Tileset &tileset)
     {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -575,11 +624,12 @@ namespace Editor
         ImGui::Begin("Editor", &dockSpaceOpen, window_flags);
         ImGui::PopStyleVar(3);
 
+
         DockSpaceSetup();
         MenuBar();
         TilemapAutoTilerWindow(tilemap);
-        TilesetBitmaskerWindow();
-        TilemapAndTilesetPropertiesPanelWindow(tilemap);
+        TilesetBitmaskerWindow(tileset);
+        TilemapAndTilesetPropertiesPanelWindow(tilemap, tileset);
 
         ImGui::PopStyleVar();
         ImGui::End();
