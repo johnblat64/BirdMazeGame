@@ -535,7 +535,7 @@ namespace Editor
     void
     TilesetLoadFromJson(Tileset& tileset)
     {
-        if (!tileset.initialized)
+        if (!tileset.texture_initialized)
         {
             bool success = TilesetLoadTilesetTexture(Global::renderer, tileset, assets_rel_path_prefix.string() + tileset.file_name);
 
@@ -558,7 +558,7 @@ namespace Editor
     void
     TilesetBitmaskerWindow(Tileset &tileset)
     {
-        
+        TilesetLoadFromJson(tileset);
         mouse_button_state_current = SDL_GetMouseState(&imgui_tileset_window_mouse_x, &imgui_tileset_window_mouse_y);
         if (ImGui::Begin("Tileset"))
         {
@@ -594,7 +594,7 @@ namespace Editor
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
-            TilesetLoadFromJson(tileset);
+            
             RenderTileset(Global::renderer, tileset, 0, 0);
             BitmaskRender(Global::renderer, tileset);
             
@@ -602,7 +602,9 @@ namespace Editor
                            SDL_Color{100, 100, 100, 255});
 
         }
+        
         ImGui::End();
+        LoadTilesetImageResultPopupWindow();
     }
 
 

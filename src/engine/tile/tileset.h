@@ -10,7 +10,7 @@ struct Tileset
     SpriteSheet sprite_sheet;
     std::vector<Uint8> bitmasks;
     std::string file_name;
-    bool initialized = false;
+    bool texture_initialized = false;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tileset, sprite_sheet, bitmasks, file_name)
 
