@@ -28,7 +28,7 @@ Tilemap_save_to_file(const char *filename, Tilemap tilemap)
     nlohmann::to_json(tilemap_json, tilemap);
     std::string tilemap_json_str = tilemap_json.dump();
     write_context->write(write_context, tilemap_json_str.c_str(), sizeof(char), tilemap_json_str.size());
-
+    SDL_RWclose(write_context);
     return true;
 }
 
@@ -46,6 +46,7 @@ TilesetSaveToFile(const char* filename, Tileset tileset)
     nlohmann::to_json(tileset_json, tileset);
     std::string tileset_json_str = tileset_json.dump();
     write_context->write(write_context, tileset_json_str.c_str(), sizeof(char), tileset_json_str.size());
+    SDL_RWclose(write_context);
 
     return true;
 }

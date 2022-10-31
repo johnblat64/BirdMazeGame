@@ -137,13 +137,13 @@ TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string 
     int req_format = STBI_rgb_alpha;
     unsigned char *tileset_image_data = stbi_load(file_path.c_str(), &tileset_width, &tileset_height,
                                                   &tileset_channels, req_format);
+    tileset.texture_initialized = true;
     if (tileset_image_data == NULL)
     {
         tileset.sprite_sheet.texture = NULL;
         return false;
     }
 
-    tileset.texture_initialized = true;
     int depth, pitch;
     SDL_Surface *image_surface;
     Uint32 pixel_format;

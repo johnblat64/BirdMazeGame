@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <time.h>
 #include "SDL2/include/SDL.h"
 #include "src/engine/tile/tilemap.h"
 #include "src/engine/tile/tileset.h"
@@ -85,6 +86,8 @@ std::string full_image_file_path;
 
 SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
+
+time_t save_timestamp = time(NULL);
 
 
 enum TabView
@@ -284,15 +287,10 @@ namespace Editor
                 {
                     imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_failure;
                 }
-                imgui_save_notification_timer = imgui_save_notification_duration_ms;
+                printf("%s, %s", imgui_tilemap_save_notification_text, ctime(&save_timestamp));
+                save_timestamp = time(NULL);
             }
 
-
-            if (imgui_save_notification_timer > 0)
-            {
-                imgui_save_notification_timer -= Global::delta_time_ms;
-                ImGui::Text("%s\n", imgui_tilemap_save_notification_text);
-            }
 
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
@@ -341,19 +339,13 @@ namespace Editor
                 if (success)
                 {
                     imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_success;
-                    
                 }
                 else
                 {
                     imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_failure;
                 }
-                imgui_save_notification_timer = imgui_save_notification_duration_ms;
-            }
-
-            if (imgui_save_notification_timer > 0)
-            {
-                imgui_save_notification_timer -= Global::delta_time_ms;
-                ImGui::Text("%s\n", imgui_tileset_save_notification_text);
+                printf("%s, %s", imgui_tileset_save_notification_text, ctime(&save_timestamp));
+                save_timestamp = time(NULL);
             }
         }
         LoadTilesetImageResultPopupWindow();
