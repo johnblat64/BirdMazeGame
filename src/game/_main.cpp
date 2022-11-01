@@ -8,6 +8,7 @@
 #include <src/util/util_draw.h>
 #include <math.h>
 #include <src/util/util_misc.h>
+#include <src/pellet_pools/moving_pellets_pool.h>
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -420,10 +421,16 @@ int main(int argc, char *argv[])
     GameSDLSetup();
     Tilemap tilemap;
     WorldPosition tilemap_position = {0.0f, 0.0f};
-    TileBoundGoodPelletsPool pellets_pool;
+    TileBoundGoodPelletsPool tile_bound_pellets_pool;
+    MovingPelletsPool moving_pellets_pool;
     LoadFileResult tilemap_load_result = Tilemap_load_from_file("tilemap.json", tilemap);
     LoadFileResult pellets_load_result = TileBoundGoodPelletsPoolLoadFromFile("tileboundgoodpelletspool.json",
-                                                                              pellets_pool);
+                                                                              tile_bound_pellets_pool);
+    moving_pellets_pool = MovingPelletsPoolInit(1000);
+    for(int i = 0; i < 20; i++)
+    {
+        moving_pellets_pool.CreatePellet((v2d){0.0, 20.0f * i}, (v2d){20.0f, 0.0f});
+    }
 
     //player setup
     SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("assets/robert-anim.png", "player", 1, 12);
@@ -480,7 +487,8 @@ int main(int argc, char *argv[])
         PlayerTilemapCollisionHandle(player, tilemap);
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
-        PlayerCollectTileBoundPellets(player, pellets_pool, tilemap);
+        PlayerCollectTileBoundPellets(player, tile_bound_pellets_pool, tilemap);
+        moving_pellets_pool.move_all(delta_time_in_seconds);
 
         //
         // RENDER
@@ -497,7 +505,9 @@ int main(int argc, char *argv[])
                           tilemap_position.y,
                           SDL_Color{100, 100, 100, 255});
 
-        TileBoundGoodPelletsPoolRender(pellets_pool, tilemap, (v2d) {tilemap_position.x, tilemap_position.y});
+        TileBoundGoodPelletsPoolRender(tile_bound_pellets_pool, tilemap, (v2d) {tilemap_position.x, tilemap_position.y});
+
+        MovingPelletsPoolRender(moving_pellets_pool, tilemap, (v2d){tilemap_position.x, tilemap_position.y});
 
 
         //PlayerRenderDebugCurrentRect(player, tilemap);
