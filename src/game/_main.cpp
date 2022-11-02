@@ -378,11 +378,14 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
 
 //-----------------------------------------------------------------------------------------------
 void
-PlayerCollectTileBoundPellets(Player &player, TileBoundGoodPelletsPool &pellets_pool, Tilemap &tilemap)
+PlayerCollectTileBoundPellets(Player &player, TileBoundGoodPelletsPool &pellets_pool, Tilemap &tilemap,
+                              MovingPelletsPool &moving_pellets_pool)
 {
     if(pellets_pool.is_active_at_tile(tilemap, player.current_tile(tilemap)))
     {
         pellets_pool.set_inactive_at_tile(tilemap, player.current_tile(tilemap));
+        v2d center_tile_pos = tilemap.center_pos_of_tile(player.current_tile(tilemap).row, player.current_tile(tilemap).col);
+        moving_pellets_pool.CreatePellet(center_tile_pos, (v2d){10.0f, -400.0f});
     }
 }
 
@@ -427,10 +430,10 @@ int main(int argc, char *argv[])
     LoadFileResult pellets_load_result = TileBoundGoodPelletsPoolLoadFromFile("tileboundgoodpelletspool.json",
                                                                               tile_bound_pellets_pool);
     moving_pellets_pool = MovingPelletsPoolInit(1000);
-    for(int i = 0; i < 20; i++)
-    {
-        moving_pellets_pool.CreatePellet((v2d){0.0, 20.0f * i}, (v2d){20.0f, 0.0f});
-    }
+//    for(int i = 0; i < 20; i++)
+//    {
+//        moving_pellets_pool.CreatePellet((v2d){0.0, 20.0f * i}, (v2d){20.0f, 0.0f});
+//    }
 
     //player setup
     SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("assets/robert-anim.png", "player", 1, 12);
@@ -487,7 +490,7 @@ int main(int argc, char *argv[])
         PlayerTilemapCollisionHandle(player, tilemap);
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
-        PlayerCollectTileBoundPellets(player, tile_bound_pellets_pool, tilemap);
+        PlayerCollectTileBoundPellets(player, tile_bound_pellets_pool, tilemap, moving_pellets_pool);
         moving_pellets_pool.move_all(delta_time_in_seconds);
 
         //
