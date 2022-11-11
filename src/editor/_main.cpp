@@ -68,14 +68,25 @@ int
 main(int argc, char *argv[])
 {
     Tilemap tilemap;
-    LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
+    Tileset tileset;
+    LoadFileResult load_tilemap_result = Tilemap_load_from_file("tilemap.json", tilemap);
+    LoadFileResult load_tileset_result = TilesetLoadFromFile("tileset.json", tileset);
 
-    if (load_result == LOAD_FILE_NOT_FOUND)
+    if (load_tilemap_result == LOAD_FILE_NOT_FOUND)
     {
         // just initialize it to something
         tilemap = Tilemap_init(30, 25, 25);
     }
-    else if (load_result == LOAD_FULL_BYTES_NOT_READ)
+    else if (load_tilemap_result == LOAD_FULL_BYTES_NOT_READ)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+    if (load_tileset_result == LOAD_FILE_NOT_FOUND)
+    {
+        tileset = TilesetInit(8, 20);
+    }
+    else if (load_tileset_result == LOAD_FULL_BYTES_NOT_READ)
     {
         exit(EXIT_FAILURE);
     }
@@ -122,7 +133,7 @@ main(int argc, char *argv[])
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        Editor::EditorWindow(tilemap);
+        Editor::EditorWindow(tilemap, tileset);
 
 
         Util::RenderTargetSet(Global::renderer, NULL);

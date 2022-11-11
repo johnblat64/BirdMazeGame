@@ -80,11 +80,13 @@ TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
 }
 
 bool
-TilesetInit(SDL_Renderer *renderer, Tileset& working_tileset, std::string file_path, int rows, int cols)
+TilesetCreateNewTextureandTileset(SDL_Renderer *renderer, Tileset& working_tileset, std::string file_path, int rows, int cols)
 {
     Tileset tileset;
+
     int tileset_width, tileset_height, tileset_channels;
     int req_format = STBI_rgb_alpha;
+    tileset.file_name = file_path.substr(file_path.rfind('/'));
     unsigned char *tileset_image_data = stbi_load(file_path.c_str(), &tileset_width, &tileset_height,
                                                   &tileset_channels, req_format);
     if (tileset_image_data == NULL)
@@ -92,6 +94,7 @@ TilesetInit(SDL_Renderer *renderer, Tileset& working_tileset, std::string file_p
         return false;
     }
 
+    tileset.texture_initialized = true;
     tileset.sprite_sheet.texture_w = (float) tileset_width;
     tileset.sprite_sheet.texture_h = (float) tileset_height;
     tileset.sprite_sheet.n_rows = rows;
@@ -115,6 +118,7 @@ TilesetInit(SDL_Renderer *renderer, Tileset& working_tileset, std::string file_p
 
     stbi_image_free(tileset_image_data);
 
+
     for (int i = 0; i < rows * cols; i++) 
     {
         tileset.bitmasks.push_back(0x00);
@@ -124,6 +128,40 @@ TilesetInit(SDL_Renderer *renderer, Tileset& working_tileset, std::string file_p
 
     return true;
 
+}
+
+bool 
+TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string file_path)
+{
+    int tileset_width, tileset_height, tileset_channels;
+    int req_format = STBI_rgb_alpha;
+    unsigned char *tileset_image_data = stbi_load(file_path.c_str(), &tileset_width, &tileset_height,
+                                                  &tileset_channels, req_format);
+    tileset.texture_initialized = true;
+    if (tileset_image_data == NULL)
+    {
+        tileset.sprite_sheet.texture = NULL;
+        return false;
+    }
+
+    int depth, pitch;
+    SDL_Surface *image_surface;
+    Uint32 pixel_format;
+
+    depth = 32;
+    pitch = 4 * tileset_width;
+    pixel_format = SDL_PIXELFORMAT_RGBA32;
+
+    image_surface = SDL_CreateRGBSurfaceWithFormatFrom(tileset_image_data, tileset_width, tileset_height, depth,
+                                                       pitch, pixel_format);
+    SDLErrorHandleNull(image_surface);
+    tileset.sprite_sheet.texture = SDL_CreateTextureFromSurface(renderer, image_surface);
+    SDLErrorHandleNull(tileset.sprite_sheet.texture);
+    SDL_FreeSurface(image_surface);
+
+    stbi_image_free(tileset_image_data);
+
+    return true;
 }
 
 void 
@@ -271,4 +309,23 @@ TilesetResizeandShiftValues(Tileset &tileset, Uint32 new_n_rows, Uint32 new_n_co
 
         tileset.sprite_sheet.n_cols = new_n_cols;
     }
+}
+
+Tileset
+TilesetInit(int rows, int cols)
+{
+    Tileset tileset;
+    tileset.sprite_sheet.texture_w = 800;
+    tileset.sprite_sheet.texture_h = 320;
+    tileset.sprite_sheet.n_rows = rows;
+    tileset.sprite_sheet.n_cols = cols;
+    tileset.file_name = "";
+    tileset.texture_initialized = true;
+    tileset.sprite_sheet.texture = NULL;
+    for (int i = 0; i < rows * cols; i++)
+    {
+        tileset.bitmasks.push_back(0x00);
+    }
+
+    return tileset;
 }

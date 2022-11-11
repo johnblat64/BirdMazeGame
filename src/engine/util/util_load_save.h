@@ -7,6 +7,7 @@
 #include <vector>
 #include <external/SDL2/include/SDL.h>
 #include <src/engine/tile/tilemap.h>
+#include <src/engine/tile/tileset.h>
 #include <src/components/components.h>
 #include <src/engine/util/util_error_handling.h>
 
@@ -28,6 +29,12 @@ Tilemap_load_from_file(const char *filename, Tilemap &tilemap);
 
 bool
 Tilemap_save_to_file(const char *filename, Tilemap tilemap);
+
+LoadFileResult
+TilesetLoadFromFile(const char *filename, Tileset &tileset);
+
+bool 
+TilesetSaveToFile(const char *filename, Tileset tileset);
 
 
 

@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "src/engine/tile/tilemap.h"
+#include <external/json/single_include/nlohmann/json.hpp>
 
 struct SpriteSheet
 {
@@ -13,6 +14,8 @@ struct SpriteSheet
     float texture_h;
     size_t n_rows;
     size_t n_cols;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SpriteSheet, texture_w, texture_h, n_rows, n_cols)
 
     float cell_width()
     {

@@ -3,11 +3,17 @@
 #include <stdio.h>
 #include "src/engine/sprite/sprite_sheet.h"
 #include <string>
+#include <external/json/single_include/nlohmann/json.hpp>
 
 struct Tileset 
 {
     SpriteSheet sprite_sheet;
     std::vector<Uint8> bitmasks;
+    std::string file_name;
+    bool texture_initialized = false;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tileset, sprite_sheet, bitmasks, file_name)
+
 
     Uint8
     bitmask_get_element(int row, int col)
@@ -27,10 +33,14 @@ void TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y);
 
 void TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y);
 
-bool TilesetInit(SDL_Renderer *renderer, Tileset &working_tileset, std::string file_path, int rows, int cols);
+bool TilesetCreateNewTextureandTileset(SDL_Renderer *renderer, Tileset &working_tileset, std::string file_path, int rows, int cols);
+
+bool TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string file_path);
 
 void BitmaskRender(SDL_Renderer *renderer, Tileset tileset);
 
 void RenderTileset(SDL_Renderer *renderer, Tileset tileset, int x, int y);
 
 void TilesetResizeandShiftValues(Tileset &tileset, Uint32 new_n_rows, Uint32 new_n_cols);
+
+Tileset TilesetInit(int rows, int cols);
