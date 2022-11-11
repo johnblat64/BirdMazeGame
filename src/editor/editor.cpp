@@ -257,10 +257,10 @@ namespace Editor
             ImGui::InputInt("Num Cols", (int *) &imgui_tilemap_n_cols);
             if (ImGui::Button("Update Row/Col Dimensions"))
             {// Use a button so user can confirm this because it could lose data if subtracting rows/columns
-                Tilemap_resize_and_shift_values(
-                        &tilemap,
-                        imgui_tilemap_n_rows,
-                        imgui_tilemap_n_cols);
+                bool_vector_2d_resize_and_shift_values(tilemap.is_collision_tiles, tilemap.n_rows, tilemap.n_cols, imgui_tilemap_n_rows, imgui_tilemap_n_cols);
+                bool_vector_2d_resize_and_shift_values(pellets_pool.is_active, tilemap.n_rows, tilemap.n_cols, imgui_tilemap_n_rows, imgui_tilemap_n_cols);
+                tilemap.n_rows = imgui_tilemap_n_rows;
+                tilemap.n_cols = imgui_tilemap_n_cols;
             }
             if (ImGui::Button("Reset New Row/Col to Current"))
             {// If user wants to reset to the current rows/cols because they realized they don't want to change it anymore

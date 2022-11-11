@@ -12,7 +12,7 @@
 bool
 TilemapIsCollisionTileAt(Tilemap tilemap, int row, int col)
 {
-    return std_vector_2d_at<char>(tilemap.is_collision_tiles, row, col, tilemap.n_cols);
+    return std_vector_2d_at<bool>(tilemap.is_collision_tiles, row, col, tilemap.n_cols);
 }
 
 
@@ -31,10 +31,15 @@ Tilemap_set_collision_tile_value(Tilemap *tilemap, int row, int col, bool is_col
 }
 
 
-
 void
-Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_n_cols)
+bool_vector_2d_resize_and_shift_values(std::vector<bool> &vector, Uint32 curr_n_rows, Uint32 curr_n_cols, Uint32 new_n_rows, Uint32 new_n_cols)
 {
+    //-----------------------
+    //
+    // VALIDATE
+    //
+    //-----------------------
+
     // too much?
 
     if(new_n_rows > MAX_ROWS_ALLOWED)
@@ -46,80 +51,90 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
         fprintf(stderr, "Not allowed to set more than %d cols for tilemap\n", MAX_COLS_ALLOWED);
     }
 
+    // not correct values?
+
+    if(curr_n_cols * curr_n_rows != vector.size())
+    {
+        fprintf(stderr, "Not allowed to pass in unequal vector and curr dimensions\n");
+        exit(EXIT_FAILURE);
+    }
+
     // no change?
 
-    if(tilemap->n_rows == new_n_rows && tilemap->n_cols == new_n_cols)
+    if(curr_n_rows == new_n_rows && curr_n_cols == new_n_cols)
     {
         return;
     }
 
-    // calculate difference between old and new size
 
-    int n_rows_difference = new_n_rows - tilemap->n_rows;
-    int n_cols_difference = new_n_cols - tilemap->n_cols;
+    //-----------------------
+    //
+    // ACTUAL WORK
+    //
+    //-----------------------
+
+    int n_rows_difference = new_n_rows - curr_n_rows;
+    int n_cols_difference = new_n_cols - curr_n_cols;
 
     // CHANGE ROW SIZE
 
     if(n_rows_difference > 0)
     {
-        int n_tiles_to_add = n_rows_difference * tilemap->n_cols;
+        int n_tiles_to_add = n_rows_difference * curr_n_cols;
 
         for(int i = 0; i < n_tiles_to_add; i++)
         {
-            tilemap->is_collision_tiles.push_back(false);
+            vector.push_back(false);
         }
     }
     else if(n_rows_difference < 0)
     {
-        int n_tiles_to_remove = (-1 * n_rows_difference) * tilemap->n_cols;
+        int n_tiles_to_remove = (-1 * n_rows_difference) * curr_n_cols;
 
         for(int i = 0; i < n_tiles_to_remove; i++)
         {
-            tilemap->is_collision_tiles.pop_back();
+            vector.pop_back();
         }
     }
 
-    tilemap->n_rows = new_n_rows;
 
     // CHANGE COL SIZE AND SHIFT VALUES FOR COL ALIGNMENT
 
     if(n_cols_difference > 0)
     {
-        int n_tiles_to_add = n_cols_difference * tilemap->n_rows;
+        int n_tiles_to_add = n_cols_difference * new_n_rows;
 
         // add tiles
         for(int i = 0; i < n_tiles_to_add; i++)
         {
-            tilemap->is_collision_tiles.push_back(false);
+            vector.push_back(false);
         }
 
         // shift tiles so that cols correctly align after adding cols
-        for(int row = tilemap->n_rows; row >= 0; row--)
+        for(int row = new_n_rows; row >= 0; row--)
         {
             int right_shift_amount = n_cols_difference * row;
 
-            for(int col = tilemap->n_cols; col >= 0; col--)
+            for(int col = curr_n_cols; col >= 0; col--)
             {
-                int value = std_vector_2d_at(tilemap->is_collision_tiles, row, col, tilemap->n_cols);
-                int index = two_dim_to_one_dim_index(row, col, tilemap->n_cols);
+                int value = std_vector_2d_at<bool>(vector, row, col, curr_n_cols);
+                int index = two_dim_to_one_dim_index(row, col, curr_n_cols);
                 int shifted_index = index + right_shift_amount;
-                tilemap->is_collision_tiles[shifted_index] = value;
+                vector[shifted_index] = value;
             }
         }
 
-        int old_n_cols = tilemap->n_cols;
-        tilemap->n_cols = new_n_cols;
 
-        // fill in padding with no sprite value
-        for(int row = 0; row < tilemap->n_rows; row++)
+        // fill in padding
+        for(int row = 0; row < new_n_rows; row++)
         {
-            for(int col = old_n_cols; col < new_n_cols; col++)
+            for(int col = curr_n_cols; col < new_n_cols; col++)
             {
-                std_vector_2d_set(
-                        tilemap->is_collision_tiles,
+                std_vector_2d_set<bool>(
+                        vector,
                         row,
                         col,
-                        tilemap->n_cols,
+                        new_n_cols,
                         false
                 );
             }
@@ -127,29 +142,29 @@ Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_
     }
     else if(n_cols_difference < 0)
     {
-        for(int row = 0; row < tilemap->n_rows; row++)
+        for(int row = 0; row < new_n_rows; row++)
         {
             int left_shift_amount = row * (-1 *n_cols_difference);
 
-            for(int col = 0; col < tilemap->n_cols; col++)
+            for(int col = 0; col < curr_n_cols; col++)
             {
-                int index = two_dim_to_one_dim_index(row, col, tilemap->n_cols);
-                int value = tilemap->is_collision_tiles[index];
+                int index = two_dim_to_one_dim_index(row, col, curr_n_cols);
+                int value = vector[index];
                 int shifted_index = index - left_shift_amount;
-                tilemap->is_collision_tiles[shifted_index] = value;
+                vector[shifted_index] = value;
             }
         }
 
-        int n_tiles_to_remove = (-1 * n_cols_difference) * tilemap->n_rows;
+        int n_tiles_to_remove = (-1 * n_cols_difference) * new_n_rows;
 
         for(int i = 0; i < n_tiles_to_remove; i++)
         {
-            tilemap->is_collision_tiles.pop_back();
+            vector.pop_back();
         }
-
-        tilemap->n_cols = new_n_cols;
     }
 }
+
+
 
 
 void
@@ -161,7 +176,7 @@ TilemapCollisionTileRectsRender(Tilemap &tilemap, float pos_x, float pos_y, SDL_
     {
         for (int col = 0; col < tilemap.n_cols; col++)
         {
-            bool is_collidable_tile = (bool) std_vector_2d_at<char>(tilemap.is_collision_tiles, row, col,
+            bool is_collidable_tile = (bool) std_vector_2d_at<bool>(tilemap.is_collision_tiles, row, col,
                                                                     tilemap.n_cols);
             if (is_collidable_tile)
             {

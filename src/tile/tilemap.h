@@ -50,7 +50,7 @@ struct TileIndex
 struct Tilemap
 {
     std::vector<int> tileset_sprite_sheet_indices;
-    std::vector<char> is_collision_tiles; // used to determine auto tiling for the tileset_sprite_sheet_indices
+    std::vector<bool> is_collision_tiles; // used to determine auto tiling for the tileset_sprite_sheet_indices
     Uint32 tile_size;
     Uint32 n_rows;
     Uint32 n_cols;
@@ -91,7 +91,8 @@ Tilemap
 Tilemap_init(Uint32 tile_size, Uint32 n_rows, Uint32 n_cols);
 
 void
-Tilemap_resize_and_shift_values(Tilemap *tilemap, Uint32 new_n_rows, Uint32 new_n_cols);
+bool_vector_2d_resize_and_shift_values(std::vector<bool> &vector, Uint32 curr_n_rows, Uint32 curr_n_cols, Uint32 new_n_rows, Uint32 new_n_cols);
+
 
 void
 std_vector_2d_set(std::vector<bool> &v, int row, int col, int n_cols, int value);
