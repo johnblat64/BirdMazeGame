@@ -10,6 +10,7 @@
 #include "src/components/components.h"
 #include "util_error_handling.h"
 #include <src/pellet_pools/tile_bound_good_pellets_pool.h>
+#include <src/tile/tileset.h>
 
 
 // for now, this is the data we need to start with for the world/first level
@@ -29,6 +30,10 @@ Tilemap_load_from_file(const char *filename, Tilemap &tilemap);
 
 bool
 Tilemap_save_to_file(const char *filename, Tilemap tilemap);
+
+bool
+TilesetSaveToFile(const char* filename, Tileset tileset);
+
 
 LoadFileResult
 TileBoundGoodPelletsPoolLoadFromFile(const char *filename, TileBoundGoodPelletsPool &pellets_pool);

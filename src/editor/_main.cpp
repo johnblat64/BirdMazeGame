@@ -134,7 +134,7 @@ main(int argc, char *argv[])
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        Editor::EditorWindow(tilemap, pellets_pool);
+        Editor::EditorWindow(tilemap, <#initializer#>, pellets_pool);
 
 
         Util::RenderTargetSet(Global::renderer, NULL);

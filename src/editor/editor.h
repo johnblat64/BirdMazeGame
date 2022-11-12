@@ -22,6 +22,6 @@ namespace Editor
     DockingLayoutPreset(ImGuiID dockspace_id);
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool);
+    void EditorWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool);
 }
 #endif //BIRDMAZEGAMEEDITOR_EDITOR_H

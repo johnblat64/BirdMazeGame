@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <external/SDL2/include/SDL.h>
 #include <src/tile/tilemap.h>
+#include "src/tile/tileset.h"
 #include <external/imgui/imgui_internal.h>
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
@@ -41,6 +42,8 @@ int tilemap_mouse_row = 0;
 int tilemap_mouse_col = 0;
 int imgui_window_mouse_x = 0;
 int imgui_window_mouse_y = 0;
+int imgui_tileset_window_mouse_x = 0;
+int imgui_tileset_window_mouse_y = 0;
 int tileset_width = 1;
 int tileset_height = 1;
 int tileset_channels = 0;
@@ -79,11 +82,19 @@ char *imgui_tilemap_save_notification_text;
 char *imgui_tilemap_save_notification_text_success = (char *) "Saved Successfully!";
 char *imgui_tilemap_save_notification_text_failure = (char *) "Save Failed!!!!";
 
+
+char *imgui_tileset_save_notification_text;
+char *imgui_tileset_save_notification_text_success = (char *) "Saved Successfully!";
+char *imgui_tileset_save_notification_text_failure = (char *) "Save Failed!!!!";
+
 std::filesystem::path assets_rel_path_prefix = "assets/";
 std::string input_text_image_file_path = "";
 std::string full_image_file_path;
 
+SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
+
+time_t save_timestamp = time(NULL);
 
 static bool dockSpaceOpen = true;
 
@@ -237,7 +248,7 @@ namespace Editor
 
     //-----------------------------------------------------------
     void
-    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
+    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool)
     {
 
         if (ImGui::Begin("Auto Tilemap Properties"))
@@ -309,12 +320,41 @@ namespace Editor
                 {
                     ImGui::OpenPopup("TilesetLoadError");
                 }
+                else
+                {
+                    tileset_width = tileset.sprite_sheet.texture_w;
+                    tileset_height = tileset.sprite_sheet.texture_h;
+                }
             }
+
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
-            
+            ImGui::Text("Tileset Mouse Pos:  (%d, %d)", imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
+            ImGui::Text("Tileset Tile Width: %f\t Tile Height: %f)", tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height());
             ImGui::InputInt("Tileset Rows", (int *) &imgui_tileset_n_rows);
             ImGui::InputInt("Tileset Cols", (int *) &imgui_tileset_n_cols);
-            ImGui::InputInt("Tileset Cell Size", (int *) &tile_cell_size);
+            if (ImGui::Button("Resize Tileset Row/Col Dimensions"))
+            {
+                TilesetResizeandShiftValues(
+                        tileset,
+                        imgui_tileset_n_rows,
+                        imgui_tileset_n_cols);
+            }
+
+
+            if (ImGui::Button("Save Tileset"))
+            {
+                bool success = TilesetSaveToFile("tileset.json", tileset);
+                if (success)
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_success;
+                }
+                else
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_failure;
+                }
+                printf("%s, %s", imgui_tileset_save_notification_text, ctime(&save_timestamp));
+                save_timestamp = time(NULL);
+            }
 
         }
         LoadTilesetImageResultPopupWindow();
@@ -526,7 +566,7 @@ namespace Editor
 
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
+    void EditorWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool)
     {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -547,7 +587,7 @@ namespace Editor
         MenuBar();
         TilemapAutoTilerWindow(tilemap, pellets_pool);
         TilesetBitmaskerWindow();
-        TilemapAndTilesetPropertiesPanelWindow(tilemap, pellets_pool);
+        TilemapAndTilesetPropertiesPanelWindow(tilemap, tileset, pellets_pool);
 
         ImGui::PopStyleVar();
         ImGui::End();
