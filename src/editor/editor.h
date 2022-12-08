@@ -9,6 +9,7 @@
 //
 #include "src/tile/tilemap.h"
 #include "imgui/imgui.h"
+#include <src/editor/level_data.h>
 
 
 namespace Editor
@@ -22,6 +23,6 @@ namespace Editor
     DockingLayoutPreset(ImGuiID dockspace_id);
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool);
+    void EditorWindow(LevelData &level_data);
 }
 #endif //BIRDMAZEGAMEEDITOR_EDITOR_H

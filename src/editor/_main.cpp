@@ -1,21 +1,26 @@
 #include <external/SDL2/include/SDL.h>
-#include "imgui_internal.h"
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_sdl.h"
-#include "imgui/backends/imgui_impl_sdlrenderer.h"
+#include <external/imgui/imgui_internal.h>
+#include <external/imgui/imgui.h>
+#include <external/imgui/backends/imgui_impl_sdl.h>
+#include <external/imgui/backends/imgui_impl_sdlrenderer.h>
 #include <src/tile/tilemap.h>
 #include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 #include <src/util/util_draw.h>
 #include <src/util/util_load_save.h>
 #include <src/util/util_error_handling.h>
-#include "src/global.h"
-#include "editor.h"
-#include <iostream>
+#include <src/global.h>
+#include <src/editor/editor.h>
+#include <src/editor/level_data.h>
 
+#include <iostream>
+#ifdef WIN32
 #include <windows.h>
 #include <direct.h>
-
-
+#define GetCurrentDirectory _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDirectory getcwd
+#endif
 //--------------------------------------------------------
 
 
@@ -73,76 +78,29 @@ EditorImGuiSetup()
 void PrintCurrentDirectory()
 {
     char buff[FILENAME_MAX];//create string buffer to hold path
-    char *whatever = _getcwd(buff, FILENAME_MAX);
+    char *whatever = GetCurrentDirectory(buff, FILENAME_MAX);
     std::string current_working_dir(buff);
-    std::cout << current_working_dir << std::endl;
+    std::cout << "Current Working Directory: " << current_working_dir << std::endl;
 }
+
 
 
 //---------------------------------------------------------
 int
 main(int argc, char *argv[])
 {
-
     PrintCurrentDirectory();
-    Tilemap tilemap;
-    Tileset tileset;
-    TileBoundGoodPelletsPool pellets_pool;
-    LoadFileResult load_tilemap_result = TilemapLoadFromFile("assets/tilemap.json", tilemap);
-    LoadFileResult load_tileset_result = TilesetLoadFromFile("assets/tileset.json", tileset);
 
-    if (load_tilemap_result == LOAD_FILE_NOT_FOUND)
-    {
-        // just initialize it to something
-        tilemap = Tilemap_init(30, 25, 25);
-    }
-    else if (load_tilemap_result == LOAD_FULL_BYTES_NOT_READ)
-    {
-        exit(EXIT_FAILURE);
-    }
-
-    if (load_tileset_result == LOAD_FILE_NOT_FOUND)
-    {
-        tileset = TilesetInit(8, 20);
-    }
-    else if (load_tileset_result == LOAD_FULL_BYTES_NOT_READ)
-    {
-        exit(EXIT_FAILURE);
-    }
-
-    LoadFileResult pellets_pool_load_result = TileBoundGoodPelletsPoolLoadFromFile("assets/tileboundgoodpelletspool.json", pellets_pool);
-
-    if (pellets_pool_load_result == LOAD_FILE_NOT_FOUND)
-    {
-        // just initialize it to something
-        pellets_pool = TileBoundGoodPelletsPoolInit(tilemap.n_tiles());
-    }
-    else if (pellets_pool_load_result == LOAD_FULL_BYTES_NOT_READ)
-    {
-        exit(EXIT_FAILURE);
-    }
-
-    Uint32 delta_time_frame_start_ticks = 0;
-    Uint32 delta_time_frame_end_ticks = 0;
-
+    LevelData level_data;
+    LevelDataLoadFromFiles(level_data);
 
     EditorSDLSetup();
     EditorImGuiSetup();
-    Editor::Setup(tilemap);
-
-    float render_ratio = 1.0f;
-
+    Editor::Setup(level_data.tilemap);
 
 
     while (!should_quit)
     {
-
-        Global::delta_time_ms = delta_time_frame_end_ticks - delta_time_frame_start_ticks;
-
-        delta_time_frame_start_ticks = SDL_GetTicks();
-
-        float new_window_w;
-
         while (SDL_PollEvent(&Global::event))
         {
             ImGui_ImplSDL2_ProcessEvent(&Global::event);
@@ -151,14 +109,7 @@ main(int argc, char *argv[])
             {
                 exit(0);
             }
-            if (Global::event.type == SDL_WINDOWEVENT)
-            {
-                if (Global::event.window.event == SDL_WINDOWEVENT_RESIZED)
-                {
-                    new_window_w = (float) Global::event.window.data1;
-                    render_ratio = (float) ((float) new_window_w / (float) Global::window_w);
-                }
-            }
+
             if (Global::event.type == SDL_KEYDOWN)
             {
                 if (Global::event.key.keysym.scancode == SDL_SCANCODE_F11)
@@ -172,7 +123,7 @@ main(int argc, char *argv[])
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        Editor::EditorWindow(tilemap, tileset, pellets_pool);
+        Editor::EditorWindow(level_data);
 
 
         Util::RenderTargetSet(Global::renderer, NULL);
@@ -182,8 +133,5 @@ main(int argc, char *argv[])
         ImGui::Render();
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(Global::renderer);
-
-        delta_time_frame_end_ticks = SDL_GetTicks();
     }
-
 }
