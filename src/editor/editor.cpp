@@ -1,31 +1,40 @@
 #include <filesystem>
-#include <time.h>
-#include "SDL2/include/SDL.h"
-#include "src/engine/tile/tilemap.h"
-#include "src/engine/tile/tileset.h"
-#include "imgui/imgui_internal.h"
-#include "imgui/imgui.h"
-#include "imgui/misc/cpp/imgui_stdlib.h"
-#include "src/engine/util/util_error_handling.h"
-#include "src/engine/util/util_load_save.h"
-#include "src/engine/util/util_draw.h"
-#include "src/engine/util/util_panning.h"
-#include "src/engine/global.h"
-
+#include <external/SDL2/include/SDL.h>
+#include <src/tile/tilemap.h>
+#include "src/tile/tileset.h"
+#include <external/imgui/imgui_internal.h>
+#include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
+#include <src/util/util_error_handling.h>
+#include <src/util/util_load_save.h>
+#include <src/util/util_draw.h>
+#include <src/util/util_panning.h>
+#include <src/global.h>
+#include <string>
+#include <src/util/util_misc.h>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 
 
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "stb/stb_image.h"
-#include <string>
 
 
+
+//---------------------------------------------------
 ImVec2 dock_size{static_cast<float>(Global::window_w), static_cast<float>(Global::window_h)};
 SDL_Texture *target_texture;
 SDL_Texture *tileset_window;
 SDL_Texture *tileset_texture;
 SDL_Color background_color = {0x6E,0x62,0x59,0xFF};
 
+enum EditMode
+{
+    EditMode_AutoTilePlacement,
+    EditMode_StaticPelletPlacement
+};
+
+static EditMode edit_mode = EditMode_AutoTilePlacement;
 
 WorldPosition tilemap_position = {0.0, 0.0};
 
@@ -63,6 +72,7 @@ ImVec2 window_size_popup{300, 85};
 bool layout_initialized = false;
 
 
+
 Uint32 imgui_tilemap_n_rows;
 Uint32 imgui_tilemap_n_cols;
 Uint32 imgui_save_notification_duration_ms = 3000;
@@ -88,14 +98,6 @@ SDL_Color line_color{0x00, 0xFF, 0xFF, 0xFF};
 SDL_Color axis_color{0x00, 0xFF, 0x00, 0xFF};
 
 time_t save_timestamp = time(NULL);
-
-
-enum TabView
-{
-    TILEMAP_VIEW,
-    TILESET_VIEW
-};
-
 
 static bool dockSpaceOpen = true;
 
@@ -249,23 +251,27 @@ namespace Editor
 
     //-----------------------------------------------------------
     void
-    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, Tileset &tileset)
+    TilemapAndTilesetPropertiesPanelWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool)
     {
 
         if (ImGui::Begin("Auto Tilemap Properties"))
         {
-
             ImGui::Text("Tile Map Properties");
+
+            ImGui::Text("Edit Mode");
+            ImGui::RadioButton("Auto Tiling Marker Placement", reinterpret_cast<int *>(&edit_mode), EditMode_AutoTilePlacement); ImGui::SameLine();
+            ImGui::RadioButton("Static Pellet Placement", reinterpret_cast<int *>(&edit_mode), EditMode_StaticPelletPlacement);
+
             ImGui::DragFloat2("Offset Position", (float *) &tilemap_position);
             ImGui::InputInt("Tile Size", (int *) &tilemap.tile_size);
             ImGui::InputInt("Num Rows", (int *) &imgui_tilemap_n_rows);
             ImGui::InputInt("Num Cols", (int *) &imgui_tilemap_n_cols);
             if (ImGui::Button("Update Row/Col Dimensions"))
             {// Use a button so user can confirm this because it could lose data if subtracting rows/columns
-                Tilemap_resize_and_shift_values(
-                        &tilemap,
-                        imgui_tilemap_n_rows,
-                        imgui_tilemap_n_cols);
+                bool_vector_2d_resize_and_shift_values(tilemap.is_collision_tiles, tilemap.n_rows, tilemap.n_cols, imgui_tilemap_n_rows, imgui_tilemap_n_cols);
+                bool_vector_2d_resize_and_shift_values(pellets_pool.is_active, tilemap.n_rows, tilemap.n_cols, imgui_tilemap_n_rows, imgui_tilemap_n_cols);
+                tilemap.n_rows = imgui_tilemap_n_rows;
+                tilemap.n_cols = imgui_tilemap_n_cols;
             }
             if (ImGui::Button("Reset New Row/Col to Current"))
             {// If user wants to reset to the current rows/cols because they realized they don't want to change it anymore
@@ -278,8 +284,10 @@ namespace Editor
 
             if (ImGui::Button("Save TileMap"))
             {
-                bool success = Tilemap_save_to_file("tilemap.json", tilemap);
-                if (success)
+                bool tilemap_save_success = TilemapSaveToFile("tilemap.json", tilemap);
+                bool pellets_save_success = TileBoundGoodPelletsPoolSaveToFile("tileboundgoodpelletspool.json", pellets_pool);
+
+                if (tilemap_save_success && pellets_save_success)
                 {
                     imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_success;
                 }
@@ -295,7 +303,7 @@ namespace Editor
             ImGui::Separator();
             ImGui::Text("Tile Set Properties");
 
-            ImGui::Text(assets_rel_path_prefix.string().c_str());
+            ImGui::Text("%s", assets_rel_path_prefix.string().c_str());
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
@@ -316,7 +324,6 @@ namespace Editor
                     tileset_width = tileset.sprite_sheet.texture_w;
                     tileset_height = tileset.sprite_sheet.texture_h;
                 }
-
             }
 
             ImGui::Text("Texture Width: %d\tTexture Height:%d", tileset_width, tileset_height);
@@ -330,6 +337,22 @@ namespace Editor
                         tileset,
                         imgui_tileset_n_rows,
                         imgui_tileset_n_cols);
+            }
+
+
+            if (ImGui::Button("Save Tileset"))
+            {
+                bool success = TilesetSaveToFile("assets/tileset.json", tileset);
+                if (success)
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_success;
+                }
+                else
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_failure;
+                }
+                printf("%s, %s", imgui_tileset_save_notification_text, ctime(&save_timestamp));
+                save_timestamp = time(NULL);
             }
 
 
@@ -357,7 +380,7 @@ namespace Editor
 
     //--------------------------------------------------------
     void
-    TilemapAutoTilerWindow(Tilemap &tilemap)
+    TilemapAutoTilerWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
     {
         mouse_button_state_prev = mouse_button_state_current;
         mouse_button_state_current = SDL_GetMouseState(&imgui_window_mouse_x, &imgui_window_mouse_y);
@@ -367,6 +390,11 @@ namespace Editor
 
         if (ImGui::Begin("Tilemap"))
         {
+            /*if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowHovered())
+            {
+                ImGui::SetWindowFocus("Tilemap");
+            }*/
+
             autotiler_window_size_previous_frame = autotiler_window_size_current_frame;
             autotiler_window_size_current_frame = ImGui::GetContentRegionAvail();
 
@@ -402,6 +430,7 @@ namespace Editor
                     &logical_mouse_x,
                     &logical_mouse_y);
 
+
             // find out what tile the mouse cursor is in because this info is useful to the user
             relative_tilemap_mouse_x = logical_mouse_x - imgui_tilemap_position.x;
             relative_tilemap_mouse_y = logical_mouse_y - imgui_tilemap_position.y;
@@ -416,65 +445,63 @@ namespace Editor
                 ImGui::SetWindowFocus("Tilemap");
             }
 
-            if (mouse_button_state_current & SDL_BUTTON_LMASK && ImGui::IsWindowFocused())
+            int tilemap_mouse_row = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
+            int tilemap_mouse_col = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
+
+            if(ImGui::IsWindowFocused())
             {
-                bool tile_selected = false;
-                int row_selected;
-                int col_selected;
-
-                if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
+                if(tilemap_mouse_row >= 0 && tilemap_mouse_col >= 0
+                   && tilemap_mouse_row < tilemap.n_rows && tilemap_mouse_col < tilemap.n_cols)
                 {
-                    row_selected = static_cast<int>(round(relative_tilemap_mouse_y)) / tilemap.tile_size;
-                    col_selected = static_cast<int>(round(relative_tilemap_mouse_x)) / tilemap.tile_size;
-
-                    if (row_selected < tilemap.n_rows && col_selected < tilemap.n_cols)
+                    if (mouse_button_state_current & SDL_BUTTON_LMASK)
                     {
-                        tile_selected = true;
+
+                        if(edit_mode == EditMode_AutoTilePlacement)
+                        {
+                            Tilemap_set_collision_tile_value(&tilemap, tilemap_mouse_row, tilemap_mouse_col, true);
+                        }
+                        else if(edit_mode == EditMode_StaticPelletPlacement)
+                        {
+                            TileIndex tile_index = {tilemap_mouse_row, tilemap_mouse_col};
+                            TilBoundGoodPelletsPoolCreatePellet(pellets_pool, tilemap, tile_index);
+                        }
+
+
+                    }
+
+                    else if (mouse_button_state_current & SDL_BUTTON_RMASK)
+                    {
+
+                        if(edit_mode == EditMode_AutoTilePlacement)
+                        {
+                            Tilemap_set_collision_tile_value(&tilemap, tilemap_mouse_row, tilemap_mouse_col, false);
+                        }
+                        else if(edit_mode == EditMode_StaticPelletPlacement)
+                        {
+                            TileIndex tile_index = {tilemap_mouse_row, tilemap_mouse_col};
+                            TilBoundGoodPelletsPoolRemovePellet(pellets_pool, tilemap, tile_index);
+                        }
+
                     }
                 }
 
-                if (tile_selected)
+                if ((mouse_button_state_prev & SDL_BUTTON_MMASK))
                 {
-                    Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, true);
+                    imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
+                    imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
+
+                    panning_offset.x = imgui_window_mouse_x;
+                    panning_offset.y = imgui_window_mouse_y;
                 }
-            }
-            else if (mouse_button_state_current & SDL_BUTTON_RMASK && ImGui::IsWindowFocused())
-            {
-                bool tile_selected = false;
-                int row_selected;
-                int col_selected;
-
-                if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
+                else if ((mouse_button_state_current & SDL_BUTTON_MMASK) )
                 {
-                    row_selected = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
-                    col_selected = static_cast<int>(relative_tilemap_mouse_x / (float) tilemap.tile_size);
-
-                    if (row_selected < tilemap.n_rows && col_selected < tilemap.n_cols)
-                    {
-                        tile_selected = true;
-                    }
+                    panning_offset.x = imgui_window_mouse_x;
+                    panning_offset.y = imgui_window_mouse_y;
                 }
 
-                if (tile_selected)
-                {
-                    Tilemap_set_collision_tile_value(&tilemap, row_selected, col_selected, false);
-                }
-            }
-            else if ((mouse_button_state_prev & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
-            {
-                imgui_window_global_offset.x -= (float) (imgui_window_mouse_x - panning_offset.x);
-                imgui_window_global_offset.y -= (float) (imgui_window_mouse_y - panning_offset.y);
-
-                panning_offset.x = imgui_window_mouse_x;
-                panning_offset.y = imgui_window_mouse_y;
-            }
-            else if ((mouse_button_state_current & SDL_BUTTON_MMASK) && ImGui::IsWindowFocused())
-            {
-                panning_offset.x = imgui_window_mouse_x;
-                panning_offset.y = imgui_window_mouse_y;
             }
 
-            
+
             Util::RenderTargetSet(Global::renderer, target_texture);
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, 50, 50, 50, 255));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
@@ -517,6 +544,7 @@ namespace Editor
                               imgui_tilemap_position.x,
                               imgui_tilemap_position.y,
                               SDL_Color{100, 100, 100, 255});
+            TileBoundGoodPelletsPoolRender(pellets_pool, tilemap, imgui_tilemap_position);
         }
         
 
@@ -525,7 +553,7 @@ namespace Editor
 
     //--------------------------------------------------------
     void
-    TilesetLoadFromJson(Tileset& tileset)
+    TilesetLoadFromJson(Tileset &tileset)
     {
         if (!tileset.texture_initialized)
         {
@@ -580,28 +608,27 @@ namespace Editor
                 TilesetUnsetBitMaskTile(tileset, imgui_tileset_window_mouse_x, imgui_tileset_window_mouse_y);
             }
 
-            
+
             Util::RenderTargetSet(Global::renderer, tileset_window);
-            
+
 
             SDLErrorHandle(SDL_SetRenderDrawColor(Global::renderer, background_color.r, background_color.g, background_color.b, background_color.a));
             SDLErrorHandle(SDL_RenderClear(Global::renderer));
-            
+
             RenderTileset(Global::renderer, tileset, 0, 0);
             BitmaskRender(Global::renderer, tileset);
-            
+
             Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
                            SDL_Color{100, 100, 100, 255});
-
         }
-        
         ImGui::End();
         LoadTilesetImageResultPopupWindow();
     }
 
 
+
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap, Tileset &tileset)
+    void EditorWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool)
     {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -621,9 +648,9 @@ namespace Editor
 
         DockSpaceSetup();
         MenuBar();
-        TilemapAutoTilerWindow(tilemap);
+        TilemapAutoTilerWindow(tilemap, pellets_pool);
         TilesetBitmaskerWindow(tileset);
-        TilemapAndTilesetPropertiesPanelWindow(tilemap, tileset);
+        TilemapAndTilesetPropertiesPanelWindow(tilemap, tileset, pellets_pool);
 
         ImGui::PopStyleVar();
         ImGui::End();

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <SDL2/SDL.h>
-#include <src/engine/util/util_misc.h>
+#include <external/SDL2/include/SDL.h>
+#include <src/util/util_misc.h>
 
 
 //--------------------------------

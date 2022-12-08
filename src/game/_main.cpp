@@ -1,11 +1,15 @@
-#include <SDL.h>
-#include <src/engine/util/util_error_handling.h>
-#include <src/engine/global.h>
-#include <src/engine/sprite/sprite_sheet.h>
-#include "src/engine/tile/tilemap.h"
-#include "src/engine/util/util_load_save.h"
-#include <src/engine/util/util_draw.h>
+#include <bitset>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
+#include <src/util/util_error_handling.h>
+#include "src/global.h"
+#include <src/sprite/sprite_sheet.h>
+#include "src/tile/tilemap.h"
+#include "src/util/util_load_save.h"
+#include <src/util/util_draw.h>
 #include <math.h>
+#include <src/util/util_misc.h>
+#include <src/pellet_pools/moving_pellets_pool.h>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -27,7 +31,7 @@ double degrees_to_rads(double degrees)
 
 int mod(int a, int b) // C++ messes us negative modding with '%' operator, so use our own
 {
-    return (b + (a%b)) % b;
+    return (b + (a % b)) % b;
 }
 
 
@@ -186,14 +190,14 @@ PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tile
     TileIndex tile_to_right_index = player.tile_to_right(tilemap);
 
     if (keyboard_state[SDL_SCANCODE_UP]
-    && !TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col))
+        && !TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col))
     {
         player.vel.y = -player.speed;
         player.vel.x = 0.0f;
         player.snap_axis = AXIS_Y;
     }
     else if (keyboard_state[SDL_SCANCODE_DOWN]
-    && !TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col))
+             && !TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col))
     {
         player.vel.y = player.speed;
         player.vel.x = 0.0f;
@@ -201,7 +205,7 @@ PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tile
 
     }
     else if (keyboard_state[SDL_SCANCODE_LEFT]
-    && !TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col))
+             && !TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col))
     {
         player.vel.x = -player.speed;
         player.vel.y = 0.0f;
@@ -209,7 +213,7 @@ PlayerSetVelocityAndSetSnapAxisBasedOnInputAndSpeed(Player &player, Tilemap tile
         player.snap_axis = AXIS_X;
     }
     else if (keyboard_state[SDL_SCANCODE_RIGHT]
-    && !TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col))
+             && !TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col))
     {
         player.vel.x = player.speed;
         player.vel.y = 0.0f;
@@ -227,26 +231,26 @@ PlayerSetVelocityToSnapToAxis(Player &player, Tilemap tilemap)
     v2d curr_tile_center_pos = tilemap.center_pos_of_tile(current_tile.row, current_tile.col);
 
     if (player.local_tilemap_pos.x > curr_tile_center_pos.x
-    && player.snap_axis == AXIS_Y)
+        && player.snap_axis == AXIS_Y)
     {
         player.vel.y = degrees_to_rads(45.0f) * player.speed * sign(player.vel.y);
         player.vel.x = degrees_to_rads(45.0f) * -player.speed;
     }
     else if (player.local_tilemap_pos.x < curr_tile_center_pos.x
-    && player.snap_axis == AXIS_Y)
+             && player.snap_axis == AXIS_Y)
     {
         player.vel.y = degrees_to_rads(45.0f) * player.speed * sign(player.vel.y);
         player.vel.x = degrees_to_rads(45.0f) * player.speed;
     }
 
     if (player.local_tilemap_pos.y > curr_tile_center_pos.y
-    && player.snap_axis == AXIS_X)
+        && player.snap_axis == AXIS_X)
     {
         player.vel.y = degrees_to_rads(45.0f) * -player.speed;
         player.vel.x = degrees_to_rads(45.0f) * player.speed * sign(player.vel.x);
     }
     else if (player.local_tilemap_pos.y < curr_tile_center_pos.y
-    && player.snap_axis == AXIS_X)
+             && player.snap_axis == AXIS_X)
     {
         player.vel.y = degrees_to_rads(45.0f) * player.speed;
         player.vel.x = degrees_to_rads(45.0f) * player.speed * sign(player.vel.x);
@@ -270,33 +274,33 @@ PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(Player &player, Tilemap ti
     TileIndex curr_tile = player.current_tile(tilemap);
     v2d curr_tile_center_pos = tilemap.center_pos_of_tile(curr_tile.row, curr_tile.col);
 
-    if(player.snap_axis == AXIS_Y
-    && VelocityIsRight(player.vel)
-    && player.local_tilemap_pos.x > curr_tile_center_pos.x)
+    if (player.snap_axis == AXIS_Y
+        && VelocityIsRight(player.vel)
+        && player.local_tilemap_pos.x > curr_tile_center_pos.x)
     {
         player.local_tilemap_pos.x = curr_tile_center_pos.x;
         player.vel.x = 0.0f;
         player.vel.y = sign(player.vel.y) * player.speed;
     }
-    else if(player.snap_axis == AXIS_Y
-    && VelocityIsLeft(player.vel)
-    && player.local_tilemap_pos.x < curr_tile_center_pos.x)
+    else if (player.snap_axis == AXIS_Y
+             && VelocityIsLeft(player.vel)
+             && player.local_tilemap_pos.x < curr_tile_center_pos.x)
     {
         player.local_tilemap_pos.x = curr_tile_center_pos.x;
         player.vel.x = 0.0f;
         player.vel.y = sign(player.vel.y) * player.speed;
     }
-    else if(player.snap_axis == AXIS_X
-    && VelocityIsUp(player.vel)
-    && player.local_tilemap_pos.y < curr_tile_center_pos.y)
+    else if (player.snap_axis == AXIS_X
+             && VelocityIsUp(player.vel)
+             && player.local_tilemap_pos.y < curr_tile_center_pos.y)
     {
         player.local_tilemap_pos.y = curr_tile_center_pos.y;
         player.vel.y = 0.0f;
         player.vel.x = sign(player.vel.x) * player.speed;
     }
-    else if(player.snap_axis == AXIS_X
-    && VelocityIsDown(player.vel)
-    && player.local_tilemap_pos.y > curr_tile_center_pos.y)
+    else if (player.snap_axis == AXIS_X
+             && VelocityIsDown(player.vel)
+             && player.local_tilemap_pos.y > curr_tile_center_pos.y)
     {
         player.local_tilemap_pos.y = curr_tile_center_pos.y;
         player.vel.y = 0.0f;
@@ -319,29 +323,29 @@ PlayerTilemapCollisionHandle(Player &player, Tilemap tilemap)
     v2d curr_tile_center_pos = tilemap.center_pos_of_tile(tile_curr_index.row, tile_curr_index.col);
 
     if (VelocityIsUp(player.vel)
-    && TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col)
-    && player.local_tilemap_pos.y < curr_tile_center_pos.y) // moving up
+        && TilemapIsCollisionTileAt(tilemap, tile_above_index.row, tile_above_index.col)
+        && player.local_tilemap_pos.y < curr_tile_center_pos.y) // moving up
     {
         player.local_tilemap_pos.y = curr_tile_center_pos.y;
         player.vel.y = 0.0f;
     }
     if (VelocityIsDown(player.vel)
-    && TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col)
-    && player.local_tilemap_pos.y > curr_tile_center_pos.y) // moving down
+        && TilemapIsCollisionTileAt(tilemap, tile_below_index.row, tile_below_index.col)
+        && player.local_tilemap_pos.y > curr_tile_center_pos.y) // moving down
     {
         player.local_tilemap_pos.y = curr_tile_center_pos.y;
         player.vel.y = 0.0f;
     }
     if (VelocityIsLeft(player.vel)
-    && TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col)
-    && player.local_tilemap_pos.x < curr_tile_center_pos.x) // moving left
+        && TilemapIsCollisionTileAt(tilemap, tile_to_left_index.row, tile_to_left_index.col)
+        && player.local_tilemap_pos.x < curr_tile_center_pos.x) // moving left
     {
         player.local_tilemap_pos.x = curr_tile_center_pos.x;
         player.vel.x = 0.0f;
     }
     if (VelocityIsRight(player.vel)
-    && TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col)
-    && player.local_tilemap_pos.x > curr_tile_center_pos.x) // moving right
+        && TilemapIsCollisionTileAt(tilemap, tile_to_right_index.row, tile_to_right_index.col)
+        && player.local_tilemap_pos.x > curr_tile_center_pos.x) // moving right
     {
         player.local_tilemap_pos.x = curr_tile_center_pos.x;
         player.vel.x = 0.0f;
@@ -368,6 +372,20 @@ PlayerSetPositionTilemapWrap(Player &player, Tilemap tilemap)
     else if (player.local_tilemap_pos.y > tilemap.height())
     {
         player.local_tilemap_pos.y = 0.0f;
+    }
+}
+
+
+//-----------------------------------------------------------------------------------------------
+void
+PlayerCollectTileBoundPellets(Player &player, TileBoundGoodPelletsPool &pellets_pool, Tilemap &tilemap,
+                              MovingPelletsPool &moving_pellets_pool)
+{
+    if(pellets_pool.is_active_at_tile(tilemap, player.current_tile(tilemap)))
+    {
+        pellets_pool.set_inactive_at_tile(tilemap, player.current_tile(tilemap));
+        v2d center_tile_pos = tilemap.center_pos_of_tile(player.current_tile(tilemap).row, player.current_tile(tilemap).col);
+        moving_pellets_pool.CreatePellet(center_tile_pos, (v2d){10.0f, -400.0f});
     }
 }
 
@@ -406,12 +424,22 @@ int main(int argc, char *argv[])
     GameSDLSetup();
     Tilemap tilemap;
     WorldPosition tilemap_position = {0.0f, 0.0f};
-    LoadFileResult load_result = Tilemap_load_from_file("tilemap.json", tilemap);
+    TileBoundGoodPelletsPool tile_bound_pellets_pool;
+    MovingPelletsPool moving_pellets_pool;
+    LoadFileResult tilemap_load_result = TilemapLoadFromFile("tilemap.json", tilemap);
+    LoadFileResult pellets_load_result = TileBoundGoodPelletsPoolLoadFromFile("tileboundgoodpelletspool.json",
+                                                                              tile_bound_pellets_pool);
+    moving_pellets_pool = MovingPelletsPoolInit(1000);
+//    for(int i = 0; i < 20; i++)
+//    {
+//        moving_pellets_pool.CreatePellet((v2d){0.0, 20.0f * i}, (v2d){20.0f, 0.0f});
+//    }
 
     //player setup
     SpriteSheet player_sprite_sheet = SpriteSheetCreateFromFile("assets/robert-anim.png", "player", 1, 12);
     AnimatedSprite player_animated_sprite = AnimatedSpriteInit(player_sprite_sheet, 0, 11, 12);
-    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 10, 10, 1.0f, tilemap);
+    Player player = PlayerInit(player_animated_sprite, 0.0f, -22.0f, 10, 10, 2.0f, tilemap);
+
 
     double delta_time_in_seconds;
     double frame_start_seconds = 0.0f;
@@ -447,7 +475,7 @@ int main(int argc, char *argv[])
         {
             quit = true;
         }
-        if(keyboard_state[SDL_SCANCODE_D])
+        if (keyboard_state[SDL_SCANCODE_D])
         {
             DEBUG_BREAK;
         }
@@ -462,6 +490,8 @@ int main(int argc, char *argv[])
         PlayerTilemapCollisionHandle(player, tilemap);
         PlayerSetPositionAndSetVelocityOnceFullySnappedOnAxis(player, tilemap);
         player.animated_sprite.increment(delta_time_in_seconds);
+        PlayerCollectTileBoundPellets(player, tile_bound_pellets_pool, tilemap, moving_pellets_pool);
+        moving_pellets_pool.move_all(delta_time_in_seconds);
 
         //
         // RENDER
@@ -478,7 +508,13 @@ int main(int argc, char *argv[])
                           tilemap_position.y,
                           SDL_Color{100, 100, 100, 255});
 
+        TileBoundGoodPelletsPoolRender(tile_bound_pellets_pool, tilemap, (v2d) {tilemap_position.x, tilemap_position.y});
+
+        MovingPelletsPoolRender(moving_pellets_pool, tilemap, (v2d){tilemap_position.x, tilemap_position.y});
+
+
         //PlayerRenderDebugCurrentRect(player, tilemap);
+
 
 
         float scale = (tilemap.tile_size * 2.0f) /

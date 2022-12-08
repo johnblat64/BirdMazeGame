@@ -7,7 +7,7 @@
 //
 // Created by frog on 9/19/22.
 //
-#include "src/engine/tile/tilemap.h"
+#include "src/tile/tilemap.h"
 #include "imgui/imgui.h"
 
 
@@ -22,6 +22,6 @@ namespace Editor
     DockingLayoutPreset(ImGuiID dockspace_id);
 
     //--------------------------------------------------------
-    void EditorWindow(Tilemap &tilemap, Tileset &tileset);
+    void EditorWindow(Tilemap &tilemap, Tileset &tileset, TileBoundGoodPelletsPool &pellets_pool);
 }
 #endif //BIRDMAZEGAMEEDITOR_EDITOR_H

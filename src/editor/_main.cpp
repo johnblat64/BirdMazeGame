@@ -1,15 +1,20 @@
-#include <SDL.h>
+#include <external/SDL2/include/SDL.h>
 #include "imgui_internal.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_sdlrenderer.h"
-#include "src/engine/tile/tilemap.h"
-#include "src/engine/tile/tileset.h"
-#include "src/engine/util/util_draw.h"
-#include "src/engine/util/util_load_save.h"
-#include "src/engine/util/util_error_handling.h"
-#include <src/engine/global.h>
+#include <src/tile/tilemap.h>
+#include <src/pellet_pools/tile_bound_good_pellets_pool.h>
+#include <src/util/util_draw.h>
+#include <src/util/util_load_save.h>
+#include <src/util/util_error_handling.h>
+#include "src/global.h"
 #include "editor.h"
+#include <iostream>
+
+#include <windows.h>
+#include <direct.h>
+
 
 //--------------------------------------------------------
 
@@ -27,11 +32,11 @@ EditorSDLSetup()
     //SDLErrorHandle(SDL_SetError("This is a test!"));
     Global::window = SDL_CreateWindow(
             "Bird Maze Game",
-            SDL_WINDOWPOS_CENTERED,
-            SDL_WINDOWPOS_CENTERED,
-            Global::window_w,
-            Global::window_h,
-            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+            0,
+            0,
+            1920,
+            1080,
+            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED
     );
     SDLErrorHandleNull(Global::window);
     Global::renderer = SDL_CreateRenderer(
@@ -63,14 +68,28 @@ EditorImGuiSetup()
 }
 
 
+
+
+void PrintCurrentDirectory()
+{
+    char buff[FILENAME_MAX];//create string buffer to hold path
+    char *whatever = _getcwd(buff, FILENAME_MAX);
+    std::string current_working_dir(buff);
+    std::cout << current_working_dir << std::endl;
+}
+
+
 //---------------------------------------------------------
 int
 main(int argc, char *argv[])
 {
+
+    PrintCurrentDirectory();
     Tilemap tilemap;
     Tileset tileset;
-    LoadFileResult load_tilemap_result = Tilemap_load_from_file("tilemap.json", tilemap);
-    LoadFileResult load_tileset_result = TilesetLoadFromFile("tileset.json", tileset);
+    TileBoundGoodPelletsPool pellets_pool;
+    LoadFileResult load_tilemap_result = TilemapLoadFromFile("assets/tilemap.json", tilemap);
+    LoadFileResult load_tileset_result = TilesetLoadFromFile("assets/tileset.json", tileset);
 
     if (load_tilemap_result == LOAD_FILE_NOT_FOUND)
     {
@@ -91,8 +110,21 @@ main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    LoadFileResult pellets_pool_load_result = TileBoundGoodPelletsPoolLoadFromFile("assets/tileboundgoodpelletspool.json", pellets_pool);
+
+    if (pellets_pool_load_result == LOAD_FILE_NOT_FOUND)
+    {
+        // just initialize it to something
+        pellets_pool = TileBoundGoodPelletsPoolInit(tilemap.n_tiles());
+    }
+    else if (pellets_pool_load_result == LOAD_FULL_BYTES_NOT_READ)
+    {
+        exit(EXIT_FAILURE);
+    }
+
     Uint32 delta_time_frame_start_ticks = 0;
     Uint32 delta_time_frame_end_ticks = 0;
+
 
     EditorSDLSetup();
     EditorImGuiSetup();
@@ -127,13 +159,20 @@ main(int argc, char *argv[])
                     render_ratio = (float) ((float) new_window_w / (float) Global::window_w);
                 }
             }
+            if (Global::event.type == SDL_KEYDOWN)
+            {
+                if (Global::event.key.keysym.scancode == SDL_SCANCODE_F11)
+                {
+                    SDL_SetWindowFullscreen(Global::window, 0);
+                }
+            }
         }
 
         ImGui_ImplSDLRenderer_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        Editor::EditorWindow(tilemap, tileset);
+        Editor::EditorWindow(tilemap, tileset, pellets_pool);
 
 
         Util::RenderTargetSet(Global::renderer, NULL);
