@@ -26,14 +26,20 @@ enum LoadFileResult
 };
 
 LoadFileResult
-Tilemap_load_from_file(const char *filename, Tilemap &tilemap);
+TilemapLoadFromFile(const char *filename, Tilemap &tilemap);
 
 bool
-Tilemap_save_to_file(const char *filename, Tilemap tilemap);
+TilemapSaveToFile(const char *filename, Tilemap tilemap);
 
 bool
 TilesetSaveToFile(const char* filename, Tileset tileset);
 
+bool TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string file_path);
+
+
+// -----------------------------------------------------------------
+LoadFileResult
+TilesetLoadFromFile(const char *filename, Tileset &tileset);
 
 LoadFileResult
 TileBoundGoodPelletsPoolLoadFromFile(const char *filename, TileBoundGoodPelletsPool &pellets_pool);

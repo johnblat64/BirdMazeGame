@@ -42,7 +42,8 @@ void MovingPelletsPoolRender(MovingPelletsPool &pellets_pool, Tilemap &tilemap, 
         v2d render_pos;
         render_pos.x = tilemap_offset.x + pellets_pool.tilemap_positions[i].x;
         render_pos.y = tilemap_offset.y + pellets_pool.tilemap_positions[i].y;
-        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){217, 194, 237,255});
+        SDL_Color color = {217, 194, 237, 255};
+        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, color);
     }
 }
 

@@ -35,7 +35,6 @@ void TilesetUnsetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y);
 
 bool TilesetCreateNewTextureandTileset(SDL_Renderer *renderer, Tileset &working_tileset, std::string file_path, int rows, int cols);
 
-bool TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string file_path);
 
 void BitmaskRender(SDL_Renderer *renderer, Tileset tileset);
 

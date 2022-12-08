@@ -54,6 +54,8 @@ void TileBoundGoodPelletsPoolRender(TileBoundGoodPelletsPool &pellets_pool, Tile
         v2d render_pos;
         render_pos.x = tilemap_offset.x + tile_center_pos.x;
         render_pos.y = tilemap_offset.y + tile_center_pos.y + sin((float)SDL_GetTicks() / 100.0f + ((float)i / 10.0f) * wave_speed) * wave_height;
-        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, (SDL_Color){255,0,255,255});
+
+        SDL_Color color = {255, 0, 255, 255};
+        Util::DrawCircleFill(Global::renderer, render_pos.x, render_pos.y, 5, color);
     }
 }

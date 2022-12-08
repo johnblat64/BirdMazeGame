@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
     WorldPosition tilemap_position = {0.0f, 0.0f};
     TileBoundGoodPelletsPool tile_bound_pellets_pool;
     MovingPelletsPool moving_pellets_pool;
-    LoadFileResult tilemap_load_result = Tilemap_load_from_file("tilemap.json", tilemap);
+    LoadFileResult tilemap_load_result = TilemapLoadFromFile("tilemap.json", tilemap);
     LoadFileResult pellets_load_result = TileBoundGoodPelletsPoolLoadFromFile("tileboundgoodpelletspool.json",
                                                                               tile_bound_pellets_pool);
     moving_pellets_pool = MovingPelletsPoolInit(1000);

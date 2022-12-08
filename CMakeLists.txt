@@ -34,6 +34,7 @@ target_link_directories(
         Game
         PRIVATE external/SDL2/lib
         PRIVATE external/flecs/Debug
+        PRIVATE external/SDL2
 )
 
 
@@ -41,10 +42,24 @@ target_link_directories(
         Editor
         PRIVATE external/SDL2/lib
         PRIVATE external/flecs/Debug
+        PRIVATE external/SDL2
 )
+
+# file(REMOVE_RECURSE  ${CMAKE_BINARY_DIR}/assets)
+
+
+file(COPY ${PROJECT_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 
 if(MSVC)
     add_definitions(-DMSVC)
+    add_custom_command(TARGET Editor POST_BUILD        # Adds a post-build event to MyTest
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  # which executes "cmake - E copy_if_different..."
+        "${CMAKE_BINARY_DIR}/external/SDL2/SDL2d.dll"      # <--this is in-file
+        "${CMAKE_BINARY_DIR}/SDL2d.dll"
+
+
+    )                 # <--this is out-file path
+
 endif()
 
 
