@@ -36,6 +36,12 @@ TilesetSaveToFile(const char* filename, Tileset tileset);
 
 bool TilesetLoadTilesetTexture(SDL_Renderer *renderer, Tileset &tileset, std::string file_path);
 
+LoadFileResult
+TilesetLoadFromFile(const char *filename, Tileset &tileset);
+
+bool 
+TilesetSaveToFile(const char *filename, Tileset tileset);
+
 
 // -----------------------------------------------------------------
 LoadFileResult

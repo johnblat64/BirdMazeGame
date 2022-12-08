@@ -14,7 +14,6 @@ TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
     };
     int row_tile_clicked = mouse_y / tileset.sprite_sheet.cell_height();
     int col_tile_clicked = mouse_x / tileset.sprite_sheet.cell_width();
-
     if (row_tile_clicked < tileset.sprite_sheet.n_rows && col_tile_clicked < tileset.sprite_sheet.n_cols)
     {
         int tile_location_x = col_tile_clicked * tileset.sprite_sheet.cell_width();
@@ -31,7 +30,6 @@ TilesetSetBitMaskTile(Tileset &tileset, int mouse_x, int mouse_y)
 
         bit_clicked_row = bit_clicked_row > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_row;
         bit_clicked_col = bit_clicked_col > BIT_CELL_NUM - 1 ? BIT_CELL_NUM - 1 : bit_clicked_col;
-
         Uint8 clicked_bit_value = bitmask_cell_values[bit_clicked_row][bit_clicked_col];
         Uint8 current_bitmask_value =  tileset.bitmask_get_element(row_tile_clicked, col_tile_clicked);
         current_bitmask_value |= clicked_bit_value;
@@ -179,7 +177,6 @@ BitmaskRender(SDL_Renderer *renderer, Tileset tileset)
                     SDL_RenderFillRectF(renderer, &visual_bitmask_rect);
                 }
             }
-
         }
     }
 }

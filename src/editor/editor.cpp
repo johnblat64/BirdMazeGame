@@ -295,11 +295,9 @@ namespace Editor
                 {
                     imgui_tilemap_save_notification_text = imgui_tilemap_save_notification_text_failure;
                 }
-
                 printf("%s, %s", imgui_tilemap_save_notification_text, ctime(&save_timestamp));
                 save_timestamp = time(NULL);
             }
-
 
 
             ImGui::Separator();
@@ -309,6 +307,9 @@ namespace Editor
             ImGui::SameLine();
             ImGui::InputText(" ", &input_text_image_file_path);
             ImGui::SameLine();
+            
+
+            
             
             if (ImGui::Button("Load Tileset"))
             {
@@ -354,6 +355,21 @@ namespace Editor
                 save_timestamp = time(NULL);
             }
 
+
+            if (ImGui::Button("Save Tileset"))
+            {
+                bool success = TilesetSaveToFile("tileset.json", tileset);
+                if (success)
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_success;
+                }
+                else
+                {
+                    imgui_tileset_save_notification_text = imgui_tileset_save_notification_text_failure;
+                }
+                printf("%s, %s", imgui_tileset_save_notification_text, ctime(&save_timestamp));
+                save_timestamp = time(NULL);
+            }
         }
         LoadTilesetImageResultPopupWindow();
         ImGui::End();
@@ -605,7 +621,6 @@ namespace Editor
             Util::DrawGrid(Global::renderer, tileset.sprite_sheet.cell_width(), tileset.sprite_sheet.cell_height(), 0, 0, tileset.sprite_sheet.n_rows, tileset.sprite_sheet.n_cols,
                            SDL_Color{100, 100, 100, 255});
         }
-
         ImGui::End();
         LoadTilesetImageResultPopupWindow();
     }
@@ -629,6 +644,7 @@ namespace Editor
 
         ImGui::Begin("Editor", &dockSpaceOpen, window_flags);
         ImGui::PopStyleVar(3);
+
 
         DockSpaceSetup();
         MenuBar();

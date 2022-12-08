@@ -45,6 +45,7 @@ EditorSDLSetup()
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
     SDLErrorHandleNull(Global::renderer);
+    SDLErrorHandle(SDL_SetRenderDrawBlendMode(Global::renderer, SDL_BLENDMODE_BLEND));
 
 }
 
@@ -99,7 +100,6 @@ main(int argc, char *argv[])
     {
         exit(EXIT_FAILURE);
     }
-
 
     if (load_tileset_result == LOAD_FILE_NOT_FOUND)
     {
