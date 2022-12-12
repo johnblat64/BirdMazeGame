@@ -1,5 +1,8 @@
 #include <src/editor/level_data.h>
 #include <src/util/util_load_save.h>
+#include <external/SDL2/include/SDL.h>
+#include <src/global.h>
+
 
 void LevelDataLoadFromFiles(LevelData& level_data)
 {
@@ -26,6 +29,10 @@ void LevelDataLoadFromFiles(LevelData& level_data)
     {
         exit(EXIT_FAILURE);
     }
+
+    bool success = TilesetLoadTilesetTexture(Global::renderer, level_data.tileset, "assets" + level_data.tileset.file_name);
+
+  
 
     LoadFileResult pellets_pool_load_result = TileBoundGoodPelletsPoolLoadFromFile("assets/tileboundgoodpelletspool.json", level_data.pellets_pool);
 

@@ -91,12 +91,13 @@ main(int argc, char *argv[])
 {
     PrintCurrentDirectory();
 
+    EditorSDLSetup();
+    EditorImGuiSetup();
+
     LevelData level_data;
     LevelDataLoadFromFiles(level_data);
 
-    EditorSDLSetup();
-    EditorImGuiSetup();
-    Editor::Setup(level_data.tilemap);
+    
 
 
     while (!should_quit)

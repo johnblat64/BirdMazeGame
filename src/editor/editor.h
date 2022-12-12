@@ -15,8 +15,6 @@
 namespace Editor
 {
     extern ImGuiID dockspace_id;
-    //----------------------------------------------------------
-    void Setup(Tilemap &tilemap);
 
     //--------------------------------------------------------
     void
