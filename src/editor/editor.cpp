@@ -14,16 +14,11 @@
 #include <src/util/util_misc.h>
 #include <src/pellet_pools/tile_bound_good_pellets_pool.h>
 #include <src/editor/level_data.h>
-
-
 #define STB_IMAGE_IMPLEMENTATION
-
 #include "stb/stb_image.h"
 
 
 
-//---------------------------------------------------
-SDL_Texture *tileset_texture;
 
 enum EditMode
 {
@@ -31,50 +26,28 @@ enum EditMode
     EditMode_StaticPelletPlacement
 };
 
-static EditMode edit_mode = EditMode_AutoTilePlacement;
 
-// Tilemap properties
-WorldPosition tilemap_position = {0.0, 0.0};
+
 
 // shared between tilemap window and tilemap properties window
+WorldPosition tilemap_position = {0.0, 0.0};
 int tilemap_mouse_row = 0;
 int tilemap_mouse_col = 0;
-
-
-
-
+float imgui_logical_mouse_x = 0;
+float imgui_logical_mouse_y = 0;
 int imgui_window_mouse_x = 0;
 int imgui_window_mouse_y = 0;
+static EditMode edit_mode = EditMode_AutoTilePlacement;
+
+
+// shared between tileset bitmasker and tileset properties
 int imgui_tileset_window_mouse_x = 0;
 int imgui_tileset_window_mouse_y = 0;
 
-float imgui_logical_mouse_x = 0;
-float imgui_logical_mouse_y = 0;
-float relative_tilemap_mouse_x;
-float relative_tilemap_mouse_y;
-float relative_tileset_mouse_x;
-float relative_tileset_mouse_y;
 
-v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
-
-v2d imgui_window_global_offset = {0, 0};
-
-
-
-ImVec2 imgui_window_pos;
-ImVec2 imgui_tileset_window_pos;
-
-
-
-
-
-
+// constants 
 const char *SAVE_NOTIFICATION_TEXT_SUCCESS = (char *) "Saved Successfully!";
 const char *SAVE_NOTIFICATION_TEXT_FAILURE = (char *) "Save Failed!!!!";
-
-
-
-
 const SDL_Color LINE_COLOR{0x00, 0xFF, 0xFF, 0xFF};
 const SDL_Color AXIS_COLOR{0x00, 0xFF, 0x00, 0xFF};
 const SDL_Color BACKGROUND_COLOR = {0x6E, 0x62, 0x59, 0xFF};
@@ -99,7 +72,8 @@ namespace Editor
         ImGuiID left;
 
         ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.3f, &right, &left);
-        ImGui::DockBuilderDockWindow("Auto Tilemap Properties", right);
+        ImGui::DockBuilderDockWindow("Tilemap Properties", right);
+        ImGui::DockBuilderDockWindow("Tileset Properties", right);
         ImGui::DockBuilderDockWindow("Tilemap", left);
         ImGui::DockBuilderDockWindow("Tileset", left);
 
@@ -158,6 +132,7 @@ namespace Editor
             ImGui::EndPopup();
         }
     }
+
 
     void TilemapPropsPanelWindow(Tilemap& tilemap, TileBoundGoodPelletsPool& pellets_pool)
     {
@@ -289,9 +264,6 @@ namespace Editor
         TilemapPropsPanelWindow(level_data.tilemap, level_data.pellets_pool);
         TilesetPropsPanelWindow(level_data.tileset);
         LoadTilesetImageResultPopupWindow();
-        //ImGui::End();
-        
-
     }
 
 
@@ -299,6 +271,9 @@ namespace Editor
     void
     TilemapAutoTilerWindow(Tilemap &tilemap, TileBoundGoodPelletsPool &pellets_pool)
     {
+        static v2d imgui_tilemap_position = {tilemap_position.x, tilemap_position.y};
+
+        static v2d imgui_window_global_offset = {0, 0};
         static v2d panning_offset = {0, 0};
         static v2d imgui_axis_position = {0, 0};
         static v2d imgui_offset_tilemap = {0, 0};
@@ -309,7 +284,7 @@ namespace Editor
         static SDL_Texture *tilemap_target_texture = Util::Texture_Create_Blank(
                                                     (int) tilemap.tile_size * tilemap.n_cols,
                                                     (int) tilemap.tile_size * tilemap.n_rows);
-        int window_mouse_x = 0 , window_mouse_y = 0;
+        static int window_mouse_x = 0 , window_mouse_y = 0;
         static Uint32 mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
         static Uint32 mouse_button_state_prev = mouse_button_state_current;
         mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);\
@@ -337,7 +312,7 @@ namespace Editor
 
             ImGui::Image(tilemap_target_texture, autotiler_window_size_previous_frame);
 
-            imgui_window_pos = ImGui::GetCursorScreenPos();
+            ImVec2 imgui_window_pos = ImGui::GetCursorScreenPos();
 
             // We calculate the WORLD(imgui window) to SCREEN position using the following formula.
             // nScreenX = fWorldX - offSetX
@@ -361,8 +336,8 @@ namespace Editor
 
 
             // find out what tile the mouse cursor is in because this info is useful to the user
-            relative_tilemap_mouse_x = imgui_logical_mouse_x - imgui_tilemap_position.x;
-            relative_tilemap_mouse_y = imgui_logical_mouse_y - imgui_tilemap_position.y;
+            int relative_tilemap_mouse_x = imgui_logical_mouse_x - imgui_tilemap_position.x;
+            int relative_tilemap_mouse_y = imgui_logical_mouse_y - imgui_tilemap_position.y;
             if (relative_tilemap_mouse_x >= 0 && relative_tilemap_mouse_y >= 0)
             {
                 tilemap_mouse_row = static_cast<int>(relative_tilemap_mouse_y / (float) tilemap.tile_size);
@@ -473,8 +448,6 @@ namespace Editor
                               SDL_Color{100, 100, 100, 255});
             TileBoundGoodPelletsPoolRender(pellets_pool, tilemap, imgui_tilemap_position);
         }
-        
-
         ImGui::End();
     }
 
@@ -506,7 +479,8 @@ namespace Editor
 
             ImGui::Image(tileset_target_texture, tileset_window_size_current_frame);
 
-            imgui_tileset_window_pos = ImGui::GetCursorScreenPos();
+            
+            ImVec2 imgui_tileset_window_pos = ImGui::GetCursorScreenPos();
             imgui_tileset_window_mouse_x -= (int) imgui_tileset_window_pos.x;
             imgui_tileset_window_mouse_y -= ((int) imgui_tileset_window_pos.y - (int) tileset_window_size_current_frame.y);
 
