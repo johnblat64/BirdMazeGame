@@ -287,8 +287,8 @@ namespace Editor
         static int window_mouse_x = 0 , window_mouse_y = 0;
         static Uint32 mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);
         static Uint32 mouse_button_state_prev = mouse_button_state_current;
-        mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);\
         mouse_button_state_prev = mouse_button_state_current;
+        mouse_button_state_current = SDL_GetMouseState(&window_mouse_x, &window_mouse_y);\
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 
